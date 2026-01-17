@@ -40,3 +40,7 @@
 .column-resize-handle-bar.active::before {
     width: 4px !important;
 }
+/* Table header cell styles */
+.fi-ta-header-cell {
+    position: relative;
+}

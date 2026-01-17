@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('table_settings', function (Blueprint $table) {
-            $table->id();
-            $table->bigInteger('user_id');
-            $table->string('resource');
-            $table->json('styles')->nullable();
-            $table->timestamps();
-        });
+        // check if the table already exists
+       if( !Schema::hasTable('table_settings')) {
+           Schema::create('table_settings', function (Blueprint $table) {
+               $table->id();
+               $table->bigInteger('user_id');
+               $table->string('resource');
+               $table->json('styles')->nullable();
+               $table->timestamps();
+           });
+       }
+
     }
 
     public function down(): void
