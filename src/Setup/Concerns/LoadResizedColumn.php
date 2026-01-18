@@ -114,6 +114,8 @@ trait LoadResizedColumn
             $relationShipModelInstance = $this->getRelationship(); // @phpstan-ignore-line
 
             return $relationShipModelInstance->getModel()::class;
+        } elseif (!method_exists($this, 'getModel')) { // @phpstan-ignore-line
+            return static::class;
         } else {
             return static::getModel();
         }
