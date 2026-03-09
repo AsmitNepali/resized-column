@@ -4,12 +4,14 @@ namespace Asmit\ResizedColumn;
 
 use Filament\FilamentManager;
 use Asmit\ResizedColumn\Plugin\Concerns\CanResizedColumn;
+use Asmit\ResizedColumn\Plugin\Concerns\CanBeStandalone;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 
 class ResizedColumnPlugin implements Plugin
 {
     use CanResizedColumn;
+    use CanBeStandalone;
 
     public static function make(): static
     {
