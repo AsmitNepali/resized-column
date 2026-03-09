@@ -2,7 +2,7 @@
 
 namespace Asmit\ResizedColumn\Plugin\Concerns;
 
-trait CanUseInStandalone
+trait CanBeStandalone
 {
     private static ?self $standaloneConfig = null;
 
