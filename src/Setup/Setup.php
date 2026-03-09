@@ -10,6 +10,13 @@ class Setup
 
     public static function resizedColumnPlugged(): bool
     {
-        return filament()->hasPlugin('asmit-resized-column') && filament()->getCurrentPanel();
+        try {
+            if (!filament()->hasPlugin('asmit-resized-column')) {
+                return false;
+            }
+            return filament()->hasPlugin('asmit-resized-column') && filament()->getDefaultPanel();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

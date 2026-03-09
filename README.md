@@ -9,6 +9,7 @@ The **Resizable Columns** plugin allows you to resize table columns in Filament 
 - Persistent column width settings
 - Per-user width preferences
 - Session and database storage options
+- Works inside **Filament panels** and in **standalone Livewire components**
 - Easy integration with existing Filament tables
 - Customizable storage mechanisms
 
@@ -121,6 +122,112 @@ class ListUsers extends ListRecords
     }
 }
 ```
+
+## Using Outside the Filament Panel
+
+Filament tables can be used in any Livewire component without a panel. This package fully supports that use case. Add the `HasResizableColumn` trait to your Livewire component just as you would inside a panel.
+
+```php
+use Asmit\ResizedColumn\HasResizableColumn;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Livewire\Component;
+
+class UsersTable extends Component implements HasForms, HasTable
+{
+    use InteractsWithForms;
+    use InteractsWithTable;
+    use HasResizableColumn;
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(User::query())
+            ->columns([
+                TextColumn::make('name'),
+                TextColumn::make('email'),
+            ]);
+    }
+
+    public function render(): View
+    {
+        return view('livewire.users-table');
+    }
+}
+```
+
+### Enabling Database Storage Outside the Panel
+
+Since there is no `AdminPanelProvider` to register the plugin, the package provides two alternative ways to enable database storage.
+
+---
+
+#### Option A — App-wide via `AppServiceProvider` (recommended for global config)
+
+Call `ResizedColumnPlugin::standalone()` once in `AppServiceProvider::boot()`. This stores a shared config instance for the entire request that all `HasResizableColumn` components will pick up automatically.
+
+```php
+// app/Providers/AppServiceProvider.php
+use Asmit\ResizedColumn\ResizedColumnPlugin;
+
+public function boot(): void
+{
+    ResizedColumnPlugin::standalone()
+        ->preserveOnDB();
+
+    // Optionally disable session storage app-wide:
+    // ResizedColumnPlugin::standalone()->preserveOnDB()->preserveOnSession(false);
+}
+```
+
+---
+
+#### Option B — Per table via Table macro (recommended for granular control)
+
+Chain `->preserveColumnWidthsInDatabase()` at the end of your `table()` method. This only affects that specific table and overrides any global config.
+
+> ⚠️ **Always call this as the last method in the chain**, after `->columns()`, `->filters()`, `->actions()`, and all other table configuration. This ensures the Livewire component reference is fully resolved when the macro runs.
+
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->query(User::query())
+        ->columns([
+            TextColumn::make('name'),
+            TextColumn::make('email'),
+        ])
+        ->filters([...])
+        ->actions([...])
+        ->preserveColumnWidthsInDatabase();   // ← always last
+}
+```
+
+You can combine both macros to fully control storage per table:
+
+```php
+->preserveColumnWidthsInDatabase()      // save to DB
+->preserveColumnWidthsInSession(false)  // disable session for this table
+```
+
+---
+
+### Configuration Priority
+
+When the package decides whether to save column widths to the database, it checks configuration in the following order. **The first match wins.**
+
+| Priority | Method | Scope |
+|----------|--------|-------|
+| **1 — Highest** | `->preserveColumnWidthsInDatabase()` table macro | Single table only |
+| **2** | `ResizedColumnPlugin::standalone()` in `AppServiceProvider` | All components, no panel required |
+| **3 — Lowest** | `ResizedColumnPlugin::make()` in panel provider | Inside a Filament panel |
+
+This means a table macro will always win over the global standalone config, which will always win over the panel plugin config.
+
+---
 
 ## Troubleshooting
 

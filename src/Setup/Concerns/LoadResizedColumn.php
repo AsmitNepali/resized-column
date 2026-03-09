@@ -3,6 +3,7 @@
 namespace Asmit\ResizedColumn\Setup\Concerns;
 
 use Asmit\ResizedColumn\Models\TableSetting;
+use Asmit\ResizedColumn\ResizedColumnTableRegistry;
 use Asmit\ResizedColumn\Setup\Setup;
 use Filament\Tables\Columns\Column;
 use Illuminate\Support\Facades\Auth;
@@ -173,11 +174,23 @@ trait LoadResizedColumn
 
     public static function isPreservedOnDB(): bool
     {
+        // Priority 1: Per-table config set via ->preserveColumnWidthsInDatabase() macro
+        if (ResizedColumnTableRegistry::has(static::class)) {
+            return ResizedColumnTableRegistry::shouldPreserveOnDb(static::class) ?? false;
+        }
+
+        // Priority 2: Global config — standalone (AppServiceProvider) or panel plugin
         return Setup::preserveOnDB();
     }
 
     public static function isPreservedOnSession(): bool
     {
+        // Priority 1: Per-table config set via ->preserveColumnWidthsInSession() macro
+        if (ResizedColumnTableRegistry::has(static::class)) {
+            return ResizedColumnTableRegistry::shouldPreserveOnSession(static::class) ?? true;
+        }
+
+        // Priority 2: Global config — standalone (AppServiceProvider) or panel plugin
         return Setup::preserveOnSession();
     }
 }
