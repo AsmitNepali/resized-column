@@ -6,8 +6,10 @@ The **Resizable Columns** plugin allows you to resize table columns in Filament 
 
 ## Features
 - Drag-to-resize column functionality
-- Persistent column width settings
-- Per-user width preferences
+- **Drag-to-reorder columns** (SortableJS) with a grip handle on each header
+- **Sticky (pinned) columns** that stay visible while scrolling horizontally
+- **User-controlled pinning** via a "Pin columns" toolbar dropdown (Filament-styled)
+- Everything persists per user — column widths, order, and pinned columns share one row
 - Session and database storage options
 - Works inside **Filament panels** and in **standalone Livewire components**
 - Easy integration with existing Filament tables
@@ -66,6 +68,53 @@ class ListUsers extends ListRecords
     // Your existing table definition...
 }
 ```
+
+## Drag-to-Reorder Columns
+
+Let users drag columns into a new order. Chain `->dragReorderableColumns()` on the table (opt-in per table). A grip handle appears on each column header; drag it to reorder. The order is persisted per user and reapplied on load.
+
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('name'),
+            TextColumn::make('email'),
+        ])
+        ->dragReorderableColumns();
+}
+```
+
+> Sticky columns are excluded from dragging, and a column cannot be dropped before a sticky one.
+> Reorder currently supports flat column tables (no column groups).
+
+## Sticky (Pinned) Columns
+
+Pin columns so they stay visible while the table scrolls horizontally.
+
+**Dev-declared default** — mark a column sticky with `->sticky()`:
+
+```php
+TextColumn::make('name')->sticky();
+```
+
+**User-controlled pinning** — enable `->stickableColumns()` on the table to let users pin/unpin columns themselves via a **"Pin columns" dropdown** in the toolbar (next to the column-manager icon). Any `->sticky()` calls seed the initial selection; once a user changes it, their choice is remembered.
+
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('name')->sticky(), // pinned by default
+            TextColumn::make('email'),
+            TextColumn::make('created_at'),
+        ])
+        ->dragReorderableColumns()
+        ->stickableColumns();
+}
+```
+
+The user's pinned selection is persisted per user (session + database) alongside widths and order — no extra migration. Sticky is left-pin only in the current version.
 
 ## Storage Configuration
 

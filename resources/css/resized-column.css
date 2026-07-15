@@ -1,4 +1,10 @@
 /* Resized Column Styles */
+/* Reserve a right gutter on every resizable header so the sort icon/label
+   never collides with the resize handle bar sitting at the right edge. */
+.group\/column-resize {
+    padding-inline-end: 1rem !important;
+}
+
 .column-resize-handle-bar {
     position: absolute;
     top: 50%;
@@ -43,4 +49,147 @@
 /* Table header cell styles */
 .fi-ta-header-cell {
     position: relative;
+}
+
+/* Reserve space on the left of a reorderable header so the grip sits in a
+   gutter instead of overlapping the label. */
+.resized-reorderable-col {
+    padding-inline-start: 1.75rem !important;
+}
+
+.resized-col-drag {
+    position: absolute;
+    top: 50%;
+    left: 0.5rem;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1rem;
+    cursor: grab;
+    opacity: 0.35;
+    line-height: 1;
+    letter-spacing: -0.15em;
+    color: rgb(148 163 184);
+    transition: opacity 0.15s ease;
+}
+
+.group\/column-resize:hover .resized-col-drag {
+    opacity: 1;
+}
+
+.resized-col-drag:active {
+    cursor: grabbing;
+}
+
+.sortable-ghost {
+    opacity: 0.4;
+}
+
+/* Pin icon / toggle marking a sticky (pinned) column header */
+.resized-sticky-pin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-inline-end: 0.35rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: rgb(var(--primary-500, 234 179 8));
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.resized-sticky-pin svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Clickable toggle variant (stickable tables): faint when unpinned, solid
+   when pinned, brighter on hover. */
+.resized-sticky-pin.is-toggle {
+    pointer-events: auto;
+    cursor: pointer;
+    color: rgb(148 163 184);
+    opacity: 0.55;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.resized-sticky-pin.is-toggle:hover {
+    opacity: 1;
+}
+
+.resized-sticky-pin.is-toggle.is-pinned {
+    color: rgb(var(--primary-500, 234 179 8));
+    opacity: 1;
+}
+
+/* Sticky column styles. The opaque background is applied to BODY cells only
+   (so scrolled rows don't bleed through). The header keeps Filament's native
+   header background so a pinned header looks identical to the others. */
+.resized-sticky {
+    box-shadow: 4px 0 6px -4px rgb(0 0 0 / 0.15);
+}
+
+td.resized-sticky {
+    background-color: rgb(255 255 255);
+}
+
+.fi-ta-row:hover td.resized-sticky {
+    background-color: rgb(249 250 251);
+}
+
+.dark td.resized-sticky {
+    background-color: rgb(24 24 27);
+}
+
+.dark .fi-ta-row:hover td.resized-sticky {
+    background-color: rgb(39 39 42);
+}
+
+/* "Pin columns" toolbar dropdown panel */
+.resized-sticky-panel {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Only positioning + sizing; visual styling comes from Filament's own
+   fi-icon-btn / fi-dropdown-panel / fi-dropdown-list(-item) / fi-checkbox
+   classes used in the panel Blade. */
+.resized-sticky-panel-menu {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    inset-inline-end: 0;
+    z-index: 40;
+    min-width: 14rem;
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+.resized-sticky-panel-heading {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(113 113 122);
+}
+
+.dark .resized-sticky-panel-heading {
+    color: rgb(161 161 170);
+}
+
+.resized-sticky-panel-item {
+    cursor: pointer;
+}
+
+.resized-sticky-panel-empty {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    color: rgb(161 161 170);
+}
+
+[x-cloak] {
+    display: none !important;
 }

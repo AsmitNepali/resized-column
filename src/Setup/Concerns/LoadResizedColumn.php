@@ -5,6 +5,7 @@ namespace Asmit\ResizedColumn\Setup\Concerns;
 use Asmit\ResizedColumn\Models\TableSetting;
 use Asmit\ResizedColumn\ResizedColumnTableRegistry;
 use Asmit\ResizedColumn\Setup\Setup;
+use Asmit\ResizedColumn\StickyColumnRegistry;
 use Filament\Tables\Columns\Column;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -13,10 +14,44 @@ use Livewire\Attributes\Renderless;
 
 trait LoadResizedColumn
 {
+    private const ORDER_KEY = '__order';
+
+    private const STICKY_KEY = '__sticky';
+
     /**
      * @var array<string, array{width: string|null}>
      */
     protected array $columnWidths = [];
+
+    /**
+     * @var array<int, string>
+     */
+    protected array $columnOrder = [];
+
+    /**
+     * User-pinned (sticky) column names.
+     *
+     * @var array<int, string>
+     */
+    protected array $stickyColumns = [];
+
+    /**
+     * Whether the user's sticky selection was loaded from persistence. When
+     * false, the dev-declared ->sticky() defaults seed the selection.
+     */
+    protected bool $stickyPersisted = false;
+
+    /**
+     * (Re)apply header/cell attributes to every column. Called on boot and
+     * after runtime changes (e.g. sticky toggle) so the current render
+     * reflects the new state without a page refresh.
+     */
+    protected function applyAllColumnAttributes(): void
+    {
+        foreach ($this->getCurrentTableColumns() as $columnName => $column) {
+            $this->applyExtraAttributes($columnName, $column);
+        }
+    }
 
     private function applyExtraAttributes(string $columnName, Column $column): void
     {
@@ -27,12 +62,114 @@ trait LoadResizedColumn
         $styles = $this->getColumnStyles($width);
 
         $columnId = $this->getColumnHtmlId($columnName);
+        $reorderable = ResizedColumnTableRegistry::isReorderable(static::class) ? 'true' : 'false';
+
+        $stickyHeader = [];
+        $stickyCell = [];
+
+        if (in_array($columnName, $this->stickyColumns, true)) {
+            $stickyHeader = ['data-sticky' => 'left', 'class' => 'resized-sticky'];
+            $stickyCell = ['data-sticky' => 'left', 'class' => 'resized-sticky'];
+        }
+
+        if (ResizedColumnTableRegistry::isStickable(static::class)) {
+            $stickyHeader['data-stickable'] = 'true';
+        }
 
         $column->extraHeaderAttributes([
-            'x-data' => "resizedColumn(`{$columnName}`, `{$columnId}`)",
+            'x-data' => "resizedColumn(`{$columnName}`, `{$columnId}`, {$reorderable})",
+            'data-column-name' => $columnName,
             ...$styles['header'],
+            ...$stickyHeader,
         ])
-            ->extraCellAttributes($styles['cell']);
+            ->extraCellAttributes([
+                ...$styles['cell'],
+                ...$stickyCell,
+            ]);
+    }
+
+    /**
+     * Seed the sticky selection from dev-declared ->sticky() columns when the
+     * user has no persisted selection yet.
+     */
+    protected function seedStickyDefaults(): void
+    {
+        if ($this->stickyPersisted) {
+            return;
+        }
+
+        $defaults = [];
+
+        foreach ($this->getTable()->getColumns() as $name => $column) {
+            if (StickyColumnRegistry::side($column) !== null) {
+                $defaults[] = $name;
+            }
+        }
+
+        $this->stickyColumns = $defaults;
+    }
+
+    /**
+     * Toggle a column's pinned (sticky) state and persist the selection.
+     */
+    public function toggleColumnSticky(string $columnName): void
+    {
+        if (! ResizedColumnTableRegistry::isStickable(static::class)) {
+            return;
+        }
+
+        if (in_array($columnName, $this->stickyColumns, true)) {
+            $this->stickyColumns = array_values(array_diff($this->stickyColumns, [$columnName]));
+        } else {
+            $this->stickyColumns[] = $columnName;
+        }
+
+        $this->stickyPersisted = true;
+
+        // Re-apply to the current render: applyAllColumnAttributes() already
+        // ran in the boot hook before this action, so without this call the
+        // new sticky state would only appear after a page refresh.
+        $this->applyAllColumnAttributes();
+
+        if (self::isPreservedOnDB()) {
+            $this->persistColumnWidthsToDatabase();
+        }
+
+        $this->persistColumnWidthsToSession();
+    }
+
+    /**
+     * Reorder the table's columns to match the saved column order,
+     * appending any columns not present in the saved order at the end.
+     */
+    protected function applyColumnOrder(): void
+    {
+        if (empty($this->columnOrder)) {
+            return;
+        }
+
+        $table = $this->getTable();
+        $columns = $table->getColumns();
+
+        if (empty($columns)) {
+            return;
+        }
+
+        $ordered = [];
+
+        foreach ($this->columnOrder as $name) {
+            if (isset($columns[$name])) {
+                $ordered[$name] = $columns[$name];
+            }
+        }
+
+        foreach ($columns as $name => $column) {
+            if (! isset($ordered[$name])) {
+                $ordered[$name] = $column;
+            }
+        }
+
+        $table->columns(array_values($ordered));
     }
 
     /**
@@ -76,6 +213,25 @@ trait LoadResizedColumn
     }
 
     /**
+     * @param  array<int, string>  $order
+     */
+    public function updateColumnOrder(array $order): void
+    {
+        $this->columnOrder = array_values(array_filter($order, 'is_string'));
+
+        // Re-apply to the current render: bootedHasResizableColumn() ran its
+        // applyColumnOrder() before this action, so without this call the new
+        // order would only take effect on the next request.
+        $this->applyColumnOrder();
+
+        if (self::isPreservedOnDB()) {
+            $this->persistColumnWidthsToDatabase();
+        }
+
+        $this->persistColumnWidthsToSession();
+    }
+
+    /**
      * Persist column widths to the database.
      * This method can be overridden to customize database operations.
      */
@@ -86,7 +242,7 @@ trait LoadResizedColumn
                 'user_id' => $this->getUserId(),
                 'resource' => $this->getResourceModelFullPath(),
             ],
-            ['styles' => $this->columnWidths]
+            ['styles' => $this->persistBlob()]
         );
     }
 
@@ -96,7 +252,27 @@ trait LoadResizedColumn
      */
     protected function persistColumnWidthsToSession(): void
     {
-        session()->put($this->getSessionKey(), $this->columnWidths);
+        session()->put($this->getSessionKey(), $this->persistBlob());
+    }
+
+    /**
+     * Merge width entries and column order back into one persistable blob.
+     *
+     * @return array<string, mixed>
+     */
+    protected function persistBlob(): array
+    {
+        $blob = $this->columnWidths;
+
+        if (! empty($this->columnOrder)) {
+            $blob[self::ORDER_KEY] = $this->columnOrder;
+        }
+
+        if ($this->stickyPersisted) {
+            $blob[self::STICKY_KEY] = array_values($this->stickyColumns);
+        }
+
+        return $blob;
     }
 
     /**
@@ -115,7 +291,7 @@ trait LoadResizedColumn
             $relationShipModelInstance = $this->getRelationship(); // @phpstan-ignore-line
 
             return $relationShipModelInstance->getModel()::class;
-        } elseif (!method_exists($this, 'getModel')) { // @phpstan-ignore-line
+        } elseif (! method_exists($this, 'getModel')) { // @phpstan-ignore-line
             return static::class;
         } else {
             return static::getModel();
@@ -143,7 +319,7 @@ trait LoadResizedColumn
             $this->loadColumnWidthsFromSession();
         }
 
-        if (self::isPreservedOnDB() && blank($this->columnWidths)) {
+        if (self::isPreservedOnDB() && blank($this->columnWidths) && blank($this->columnOrder)) {
             $this->loadColumnWidthsFromDatabase();
         }
     }
@@ -154,8 +330,7 @@ trait LoadResizedColumn
      */
     protected function loadColumnWidthsFromSession(): void
     {
-        $sessionKey = $this->getSessionKey();
-        $this->columnWidths = session($sessionKey) ?: [];
+        $this->hydrateFromBlob(session($this->getSessionKey()) ?: []);
     }
 
     /**
@@ -164,12 +339,32 @@ trait LoadResizedColumn
      */
     protected function loadColumnWidthsFromDatabase(): void
     {
-        $this->columnWidths = TableSetting::query()
+        $blob = TableSetting::query()
             ->where('user_id', $this->getUserId())
             ->where('resource', $this->getResourceModelFullPath())
             ->value('styles') ?? [];
 
+        $this->hydrateFromBlob($blob);
+
         $this->persistColumnWidthsToSession();
+    }
+
+    /**
+     * Split a persisted blob into width entries and the column order list.
+     *
+     * @param  array<string, mixed>  $blob
+     */
+    protected function hydrateFromBlob(array $blob): void
+    {
+        $this->columnOrder = $blob[self::ORDER_KEY] ?? [];
+
+        if (array_key_exists(self::STICKY_KEY, $blob)) {
+            $this->stickyColumns = $blob[self::STICKY_KEY];
+            $this->stickyPersisted = true;
+        }
+
+        unset($blob[self::ORDER_KEY], $blob[self::STICKY_KEY]);
+        $this->columnWidths = $blob;
     }
 
     public static function isPreservedOnDB(): bool

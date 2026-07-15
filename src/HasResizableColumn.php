@@ -12,8 +12,10 @@ trait HasResizableColumn
     {
         $this->loadColumnWidths();
 
-        foreach ($this->getCurrentTableColumns() as $columnName => $column) {
-            $this->applyExtraAttributes($columnName, $column);
-        }
+        $this->applyColumnOrder();
+
+        $this->seedStickyDefaults();
+
+        $this->applyAllColumnAttributes();
     }
 }
