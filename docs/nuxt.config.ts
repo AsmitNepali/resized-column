@@ -20,8 +20,8 @@ export default defineNuxtConfig({
             image: `${baseURL}preview.png`,
             header: {
                 logo: {
-                    light: `${baseURL}logo-light.svg`,
-                    dark: `${baseURL}logo-dark.svg`,
+                    light: `${baseURL}logo.svg`,
+                    dark: `${baseURL}logo.svg`,
                 },
             },
         },
