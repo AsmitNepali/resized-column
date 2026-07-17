@@ -197,6 +197,11 @@ document.addEventListener('alpine:init', () => {
                     const zIndex = 20 - index;
 
                     this.applyStickyStyle(header, offset, zIndex);
+                    // Header cells have no opaque background of their own
+                    // (Filament tints a wrapper / uses translucency), so a
+                    // sticky header would let scrolled columns bleed through.
+                    // Paint it with the real header colour so it stays solid.
+                    header.style.backgroundColor = this.opaqueBackground(header);
 
                     const bodyId = this.tableBodyCellPrefix
                         + this.slugifyColumnName(columnName);
@@ -212,6 +217,23 @@ document.addEventListener('alpine:init', () => {
                 el.style.position = 'sticky';
                 el.style.left = `${left}px`;
                 el.style.zIndex = `${zIndex}`;
+            },
+
+            // First fully-opaque background up the ancestor chain (including the
+            // element itself). Matches the header's visible colour on any theme
+            // instead of hard-coding one that breaks on custom palettes.
+            opaqueBackground(el) {
+                let node = el;
+                while (node && node !== document.documentElement) {
+                    const match = getComputedStyle(node)
+                        .backgroundColor.match(/^rgba?\(([^)]+)\)/);
+                    if (match) {
+                        const [r, g, b, a] = match[1].split(',').map(v => parseFloat(v));
+                        if (a === undefined || a >= 1) return `rgb(${r}, ${g}, ${b})`;
+                    }
+                    node = node.parentElement;
+                }
+                return 'rgb(255, 255, 255)';
             },
 
             slugifyColumnName(name) {
