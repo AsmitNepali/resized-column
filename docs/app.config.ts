@@ -6,8 +6,8 @@ export default defineAppConfig({
     header: {
         title: 'Resizable Columns',
         logo: {
-            light: '/logo.svg',
-            dark: '/logo.svg',
+            light: '/logo-light.svg',
+            dark: '/logo-dark.svg',
             alt: 'Resizable Columns Logo',
         }
     },

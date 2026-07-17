@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 452 100" width="452" height="100" fill="none" role="img" aria-label="Resizable Columns">
+  <!-- icon (transparent plate) -->
+  <g stroke="#94a3b8" stroke-width="3" stroke-linecap="round">
+    <line x1="46" y1="30" x2="46" y2="76"/><line x1="60" y1="30" x2="60" y2="76"/><line x1="74" y1="30" x2="74" y2="76"/>
+  </g>
+  <g stroke="#cbd5e1" stroke-width="3" stroke-linecap="round">
+    <line x1="24" y1="44" x2="78" y2="44"/><line x1="24" y1="58" x2="78" y2="58"/><line x1="24" y1="72" x2="78" y2="72"/>
+  </g>
+  <rect x="24" y="30" width="15" height="46" rx="5" fill="#f59e0b"/>
+  <circle cx="31.5" cy="24" r="7" fill="#fbbf24" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="31.5" cy="24" r="2.4" fill="#0f172a"/>
+
+  <!-- wordmark -->
+  <text x="100" y="64" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="800" letter-spacing="-1" fill="#0f172a">Resizable Columns</text>
+</svg>
