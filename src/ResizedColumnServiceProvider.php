@@ -2,8 +2,8 @@
 
 namespace Asmit\ResizedColumn;
 
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
+use Asmit\ResizedColumn\Assets\ContentHashCss;
+use Asmit\ResizedColumn\Assets\ContentHashJs;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Columns\Column;
@@ -26,8 +26,8 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         FilamentAsset::register([
-            Js::make('resized-column', __DIR__.'/../resources/dist/js/resized-column.js'),
-            Css::make('resized-column', __DIR__.'/../resources/css/resized-column.css'),
+            ContentHashJs::make('resized-column', __DIR__.'/../resources/dist/js/resized-column.js'),
+            ContentHashCss::make('resized-column', __DIR__.'/../resources/css/resized-column.css'),
         ], 'asmit/resized-column');
 
         $this->registerTableMacros();
