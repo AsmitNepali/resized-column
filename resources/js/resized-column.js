@@ -250,7 +250,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         tableRoot() {
-            return this.$el.closest('.fi-ta') || this.$el.closest('[wire\\:id]') || document;
+            // Prefer the Livewire component root — it always wraps both the
+            // toolbar (where this panel lives) and the table, so the header
+            // scan is reliable regardless of Filament's inner wrapper classes.
+            return this.$el.closest('[wire\\:id]') || this.$el.closest('.fi-ta') || document;
         },
 
         labelFor(th) {

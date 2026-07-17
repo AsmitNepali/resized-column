@@ -2,7 +2,7 @@
     "name": "asmit/resized-column",
     "description": "Resizeable column for filament",
     "type": "library",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "license": "MIT",
     "autoload": {
         "psr-4": {
