@@ -21,7 +21,7 @@ export default defineAppConfig({
     socials: {},
     ui: {
         colors: {
-            primary: 'sky',
+            primary: 'amber',
             neutral: 'slate'
         }
     },

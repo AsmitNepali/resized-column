@@ -2,7 +2,7 @@
 
 The **Resizable Columns** plugin allows you to resize table columns in Filament with persistent width settings. This package provides a seamless way to customize table layouts by letting users adjust column widths according to their preferences.
 
-![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/images/cover.jpg)
+![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/art/banner.png)
 
 ## Features
 - Drag-to-resize column functionality
