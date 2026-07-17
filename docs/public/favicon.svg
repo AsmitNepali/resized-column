@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+
+  <!-- Three table columns; the left one pinned/solid, right ones lighter -->
+  <rect x="12" y="14" width="12" height="36" rx="3" fill="url(#fv_brand)"/>
+  <rect x="28" y="14" width="12" height="36" rx="3" fill="url(#fv_brand)" opacity="0.6"/>
+  <rect x="44" y="14" width="12" height="36" rx="3" fill="url(#fv_brand)" opacity="0.35"/>
+
+  <!-- Resize handle on the pinned column edge -->
+  <rect x="23" y="24" width="3" height="16" rx="1.5" fill="#0369A1"/>
+
+  <defs>
+    <!-- sky-600 -> sky-400 -->
+    <linearGradient id="fv_brand" x1="12" y1="14" x2="56" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0284C7"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+</svg>
