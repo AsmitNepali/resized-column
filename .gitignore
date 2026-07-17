@@ -2,3 +2,5 @@
 /node_modules
 .DS_Store
 .idea/
+.phpunit.result.cache
+/.phpunit.cache

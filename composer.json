@@ -9,6 +9,11 @@
             "Asmit\\ResizedColumn\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Asmit\\ResizedColumn\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "AsmitNepali",
@@ -16,8 +21,22 @@
         }
     ],
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "filament/support": "^3.2|^4.0|^5.0"
+    },
+    "require-dev": {
+        "filament/tables": "^4.0",
+        "orchestra/testbench": "^9.0|^10.0",
+        "pestphp/pest": "^3.0"
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
     "extra": {
         "laravel": {
