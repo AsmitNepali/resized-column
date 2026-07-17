@@ -4,6 +4,8 @@ export default defineAppConfig({
         description: 'Resize, reorder, and pin Filament table columns with per-user persistence.',
         header: {
             logo: {
+                light: '/logo.svg',
+                dark: '/logo.svg',
                 alt: 'Resizable Columns Logo',
             }
         }
