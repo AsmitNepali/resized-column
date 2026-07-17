@@ -1,5 +1,12 @@
 # Resizable Columns
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
+[![Total Downloads](https://img.shields.io/packagist/dt/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
+[![PHP Version](https://img.shields.io/packagist/php-v/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
+[![License](https://img.shields.io/packagist/l/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
+[![GitHub Stars](https://img.shields.io/github/stars/AsmitNepali/resized-column.svg?style=flat-square)](https://github.com/AsmitNepali/resized-column/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/AsmitNepali/resized-column.svg?style=flat-square)](https://github.com/AsmitNepali/resized-column/network/members)
+
 The **Resizable Columns** plugin allows you to resize table columns in Filament with persistent width settings. This package provides a seamless way to customize table layouts by letting users adjust column widths according to their preferences.
 
 ![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/images/cover.jpg)
