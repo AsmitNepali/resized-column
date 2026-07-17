@@ -2,12 +2,13 @@ export default defineAppConfig({
     docus: {
         title: 'Resizable Columns',
         description: 'Resize, reorder, and pin Filament table columns with per-user persistence.',
-        header: {
-            logo: {
-                light: '/logo.svg',
-                dark: '/logo.svg',
-                alt: 'Resizable Columns Logo',
-            }
+    },
+    header: {
+        title: 'Resizable Columns',
+        logo: {
+            light: '/logo.svg',
+            dark: '/logo.svg',
+            alt: 'Resizable Columns Logo',
         }
     },
     seo: {
