@@ -12,13 +12,24 @@ The **Resizable Columns** plugin allows you to resize table columns in Filament 
 ![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/images/cover.jpg)
 
 ## Features
-- Drag-to-resize column functionality
-- Persistent column width settings
-- Per-user width preferences
-- Session and database storage options
-- Works inside **Filament panels** and in **standalone Livewire components**
-- Easy integration with existing Filament tables
-- Customizable storage mechanisms
+
+| Feature | API |
+|---------|-----|
+| Drag-to-resize columns | `HasResizableColumn` trait |
+| Drag-to-reorder columns | `->dragReorderableColumns()` |
+| Dev-declared pinned columns | `TextColumn::make('name')->sticky()` |
+| User pin/unpin panel (draft + Apply) | `->stickableColumns()` |
+| Custom Pin columns toolbar button | `->stickyManagerTriggerAction(fn (Action $action) => ...)` |
+| Session persistence (default) | `ResizedColumnPlugin::make()` |
+| Database persistence | `->preserveOnDB()` or `->preserveColumnWidthsInDatabase()` |
+| Per-table session control | `->preserveColumnWidthsInSession()` |
+| Standalone Livewire (no panel) | `HasResizableColumn` + `ResizedColumnPlugin::standalone()` |
+
+- Widths, order, and pinned columns persist **per user** in one settings row (session and/or database).
+- Works inside **Filament panels** and in **standalone Livewire components**.
+- Pinned columns use opaque backgrounds; resize is disabled on sticky headers.
+
+Full documentation lives in the `docs/` Nuxt site — start at **Features overview** (`/features/overview`).
 
 ## Installation
 You can install the package via composer:
@@ -71,6 +82,69 @@ class ListUsers extends ListRecords
     protected static string $resource = UserResource::class;
     
     // Your existing table definition...
+}
+```
+
+## Drag-to-Reorder Columns
+
+Let users drag columns into a new order. Chain `->dragReorderableColumns()` on the table (opt-in per table). A grip handle appears on each column header; drag it to reorder. The order is persisted per user and reapplied on load.
+
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('name'),
+            TextColumn::make('email'),
+        ])
+        ->dragReorderableColumns();
+}
+```
+
+> Sticky columns are excluded from dragging, and a column cannot be dropped before a sticky one.
+> Reorder currently supports flat column tables (no column groups).
+
+## Sticky (Pinned) Columns
+
+Pin columns so they stay visible while the table scrolls horizontally.
+
+**Dev-declared default** — mark a column sticky with `->sticky()`:
+
+```php
+TextColumn::make('name')->sticky();
+```
+
+**User-controlled pinning** — enable `->stickableColumns()` on the table to let users pin/unpin columns themselves via a **"Pin columns" dropdown** in the toolbar (next to the column-manager icon). Changes are drafted until you click **Apply** (Select all / Deselect all included). Closing the panel without Apply keeps the draft in memory for that page session. Any `->sticky()` calls seed the initial selection; once a user changes it, their choice is remembered.
+
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('name')->sticky(), // pinned by default
+            TextColumn::make('email'),
+            TextColumn::make('created_at'),
+        ])
+        ->dragReorderableColumns()
+        ->stickableColumns();
+}
+```
+
+The user's pinned selection is persisted per user (session + database) alongside widths and order — no extra migration. Sticky is left-pin only in the current version.
+
+Customize the toolbar trigger (same idea as Filament's `columnManagerTriggerAction()`):
+
+```php
+use Filament\Actions\Action;
+
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([...])
+        ->stickableColumns()
+        ->stickyManagerTriggerAction(fn (Action $action) => $action
+            ->label('Pinned columns')
+            ->tooltip('Choose pinned columns'));
 }
 ```
 

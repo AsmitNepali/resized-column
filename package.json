@@ -13,5 +13,8 @@
     "description": "",
     "devDependencies": {
         "esbuild": "^0.25.4"
+    },
+    "dependencies": {
+        "sortablejs": "^1.15.7"
     }
 }

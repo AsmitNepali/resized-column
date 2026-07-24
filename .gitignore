@@ -1,5 +1,7 @@
 /vendor
 /node_modules
-/resources/js
 .DS_Store
 .idea/
+/resources/js
+.phpunit.result.cache
+/.phpunit.cache
