@@ -98,7 +98,7 @@ Pin columns so they stay visible while the table scrolls horizontally.
 TextColumn::make('name')->sticky();
 ```
 
-**User-controlled pinning** — enable `->stickableColumns()` on the table to let users pin/unpin columns themselves via a **"Pin columns" dropdown** in the toolbar (next to the column-manager icon). Any `->sticky()` calls seed the initial selection; once a user changes it, their choice is remembered.
+**User-controlled pinning** — enable `->stickableColumns()` on the table to let users pin/unpin columns themselves via a **"Pin columns" dropdown** in the toolbar (next to the column-manager icon). Changes are drafted until you click **Apply** (Select all / Deselect all included). Closing the panel without Apply keeps the draft in memory for that page session. Any `->sticky()` calls seed the initial selection; once a user changes it, their choice is remembered.
 
 ```php
 public function table(Table $table): Table

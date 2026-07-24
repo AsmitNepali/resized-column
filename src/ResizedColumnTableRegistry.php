@@ -9,7 +9,7 @@ namespace Asmit\ResizedColumn;
  */
 class ResizedColumnTableRegistry
 {
-    /** @var array<class-string, array{preserveOnDb: bool, preserveOnSession: bool, reorderable: bool, stickable: bool}> */
+    /** @var array<class-string, array{preserveOnDb: bool, preserveOnSession: bool, reorderable: bool, stickable: bool, stickyPanelActionModifier: ?\Closure}> */
     private static array $configs = [];
 
     public static function register(
@@ -26,7 +26,22 @@ class ResizedColumnTableRegistry
             'preserveOnSession' => $preserveOnSession ?? $existing['preserveOnSession'] ?? true,
             'reorderable' => $reorderable ?? $existing['reorderable'] ?? false,
             'stickable' => $stickable ?? $existing['stickable'] ?? false,
+            'stickyPanelActionModifier' => $existing['stickyPanelActionModifier'] ?? null,
         ];
+    }
+
+    public static function stickyPanelAction(string $componentClass, ?\Closure $modifier): void
+    {
+        if (! isset(static::$configs[$componentClass])) {
+            static::register($componentClass);
+        }
+
+        static::$configs[$componentClass]['stickyPanelActionModifier'] = $modifier;
+    }
+
+    public static function getStickyPanelActionModifier(string $componentClass): ?\Closure
+    {
+        return static::$configs[$componentClass]['stickyPanelActionModifier'] ?? null;
     }
 
     public static function isStickable(string $componentClass): bool

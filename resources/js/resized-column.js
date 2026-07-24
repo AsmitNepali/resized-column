@@ -30,8 +30,16 @@ document.addEventListener('alpine:init', () => {
             },
 
             initializeColumnLayout() {
-                this.column.classList.add('relative', 'group/column-resize');
-                this.createHandleBar();
+                this.column.classList.add('relative');
+
+                if (this.column.hasAttribute('data-sticky')) {
+                    this.column.classList.remove('group/column-resize');
+                    this.column.querySelector('.column-resize-handle-bar')?.remove();
+                } else {
+                    this.column.classList.add('group/column-resize');
+                    this.createHandleBar();
+                }
+
                 if (reorderable && !this.column.hasAttribute('data-sticky')) this.createDragHandle();
                 this.createStickyPin();
             },
@@ -192,22 +200,24 @@ document.addEventListener('alpine:init', () => {
                 if (!stickyHeaders.length) return;
 
                 let offset = 0;
+                const stickyCount = stickyHeaders.length;
+
                 stickyHeaders.forEach((header, index) => {
                     const columnName = header.getAttribute('data-column-name');
-                    const zIndex = 20 - index;
+                    // Headers sit above body stickies when scrolling vertically; body
+                    // only needs a low z-index to cover horizontally scrolling cells.
+                    const headerZIndex = 20 + (stickyCount - index);
+                    const bodyZIndex = 1 + (stickyCount - index);
 
-                    this.applyStickyStyle(header, offset, zIndex);
-                    // Header cells have no opaque background of their own
-                    // (Filament tints a wrapper / uses translucency), so a
-                    // sticky header would let scrolled columns bleed through.
-                    // Paint it with the real header colour so it stays solid.
-                    header.style.backgroundColor = this.opaqueBackground(header);
+                    this.applyStickyStyle(header, offset, headerZIndex);
 
                     const bodyId = this.tableBodyCellPrefix
                         + this.slugifyColumnName(columnName);
                     this.table
                         .querySelectorAll(`.${this.getEscapedSelectorFromClass(bodyId)}`)
-                        .forEach(cell => this.applyStickyStyle(cell, offset, zIndex - 1));
+                        .forEach((cell) => {
+                            this.applyStickyStyle(cell, offset, bodyZIndex);
+                        });
 
                     offset += header.offsetWidth;
                 });
@@ -217,23 +227,6 @@ document.addEventListener('alpine:init', () => {
                 el.style.position = 'sticky';
                 el.style.left = `${left}px`;
                 el.style.zIndex = `${zIndex}`;
-            },
-
-            // First fully-opaque background up the ancestor chain (including the
-            // element itself). Matches the header's visible colour on any theme
-            // instead of hard-coding one that breaks on custom palettes.
-            opaqueBackground(el) {
-                let node = el;
-                while (node && node !== document.documentElement) {
-                    const match = getComputedStyle(node)
-                        .backgroundColor.match(/^rgba?\(([^)]+)\)/);
-                    if (match) {
-                        const [r, g, b, a] = match[1].split(',').map(v => parseFloat(v));
-                        if (a === undefined || a >= 1) return `rgb(${r}, ${g}, ${b})`;
-                    }
-                    node = node.parentElement;
-                }
-                return 'rgb(255, 255, 255)';
             },
 
             slugifyColumnName(name) {
@@ -265,10 +258,13 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('resizedStickyPanel', () => ({
         open: false,
         columns: [],
+        draftInitialized: false,
 
         toggle() {
             this.open = !this.open;
-            if (this.open) this.refresh();
+            if (this.open) {
+                this.ensureDraft();
+            }
         },
 
         tableRoot() {
@@ -292,11 +288,61 @@ document.addEventListener('alpine:init', () => {
                 label: this.labelFor(th),
                 pinned: th.hasAttribute('data-sticky'),
             }));
+            this.draftInitialized = true;
         },
 
-        togglePin(col) {
+        ensureDraft() {
+            if (!this.draftInitialized || !this.isDirty()) {
+                this.refresh();
+            }
+        },
+
+        livePinned() {
+            const root = this.tableRoot();
+            return Array.from(root.querySelectorAll('thead [data-column-name][data-sticky]'))
+                .map((th) => th.getAttribute('data-column-name'))
+                .filter(Boolean)
+                .sort();
+        },
+
+        draftPinned() {
+            return this.columns.filter((col) => col.pinned).map((col) => col.name).sort();
+        },
+
+        isDirty() {
+            const live = this.livePinned();
+            const draft = this.draftPinned();
+            if (live.length !== draft.length) {
+                return true;
+            }
+            return live.some((name, index) => name !== draft[index]);
+        },
+
+        toggleDraft(col) {
             col.pinned = !col.pinned;
-            this.$wire.toggleColumnSticky(col.name);
+        },
+
+        selectAll() {
+            this.columns.forEach((col) => {
+                col.pinned = true;
+            });
+        },
+
+        deselectAll() {
+            this.columns.forEach((col) => {
+                col.pinned = false;
+            });
+        },
+
+        async apply() {
+            if (!this.isDirty()) {
+                return;
+            }
+
+            const names = this.columns.filter((col) => col.pinned).map((col) => col.name);
+            await this.$wire.setStickyColumns(names);
+            this.open = false;
+            this.refresh();
         },
     }));
 });

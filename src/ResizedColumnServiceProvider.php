@@ -18,6 +18,7 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
     {
         $package->name('asmit-resized-column')
             ->hasViews()
+            ->hasTranslations()
             ->hasMigrations([
                 'create_table_settings',
             ]);
@@ -111,6 +112,25 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
 
             return $this;
         });
+
+        /**
+         * Customize the sticky panel toolbar trigger action.
+         *
+         * Usage inside a Livewire component's table() method:
+         *   return $table
+         *       ->columns([...])
+         *       ->stickableColumns()
+         *       ->stickyPanelAction(fn (Action $action) => $action->tooltip('My tooltip'));
+         */
+        Table::macro('stickyPanelAction', function (?\Closure $callback): Table {
+            /** @var Table $this */
+            ResizedColumnTableRegistry::stickyPanelAction(
+                get_class($this->getLivewire()),
+                $callback,
+            );
+
+            return $this;
+        });
     }
 
     /**
@@ -128,7 +148,12 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
                     return '';
                 }
 
-                return view('asmit-resized-column::sticky-panel')->render();
+                $table = StickyPanel::resolveTableFromLivewire($componentClass);
+                $triggerAction = StickyPanel::resolveTriggerAction($table);
+
+                return view('asmit-resized-column::sticky-panel', [
+                    'triggerAction' => $triggerAction,
+                ])->render();
             },
         );
     }

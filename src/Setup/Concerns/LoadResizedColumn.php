@@ -139,6 +139,35 @@ trait LoadResizedColumn
     }
 
     /**
+     * Replace the pinned (sticky) selection and persist it.
+     *
+     * @param  list<string>  $columnNames
+     */
+    public function setStickyColumns(array $columnNames): void
+    {
+        if (! ResizedColumnTableRegistry::isStickable(static::class)) {
+            return;
+        }
+
+        $allowed = array_keys($this->getTable()->getColumns());
+
+        $this->stickyColumns = array_values(array_unique(array_filter(
+            $columnNames,
+            fn (mixed $name): bool => is_string($name) && in_array($name, $allowed, true),
+        )));
+
+        $this->stickyPersisted = true;
+
+        $this->applyAllColumnAttributes();
+
+        if (self::isPreservedOnDB()) {
+            $this->persistColumnWidthsToDatabase();
+        }
+
+        $this->persistColumnWidthsToSession();
+    }
+
+    /**
      * Reorder the table's columns to match the saved column order,
      * appending any columns not present in the saved order at the end.
      */
