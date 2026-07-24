@@ -3,3 +3,5 @@
 .DS_Store
 .idea/
 /resources/js
+.phpunit.result.cache
+/.phpunit.cache
