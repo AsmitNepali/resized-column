@@ -5,15 +5,24 @@ The **Resizable Columns** plugin allows you to resize table columns in Filament 
 ![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/images/cover.jpg)
 
 ## Features
-- Drag-to-resize column functionality
-- **Drag-to-reorder columns** (SortableJS) with a grip handle on each header
-- **Sticky (pinned) columns** that stay visible while scrolling horizontally
-- **User-controlled pinning** via a "Pin columns" toolbar dropdown (Filament-styled)
-- Everything persists per user — column widths, order, and pinned columns share one row
-- Session and database storage options
-- Works inside **Filament panels** and in **standalone Livewire components**
-- Easy integration with existing Filament tables
-- Customizable storage mechanisms
+
+| Feature | API |
+|---------|-----|
+| Drag-to-resize columns | `HasResizableColumn` trait |
+| Drag-to-reorder columns | `->dragReorderableColumns()` |
+| Dev-declared pinned columns | `TextColumn::make('name')->sticky()` |
+| User pin/unpin panel (draft + Apply) | `->stickableColumns()` |
+| Custom Pin columns toolbar button | `->stickyManagerTriggerAction(fn (Action $action) => ...)` |
+| Session persistence (default) | `ResizedColumnPlugin::make()` |
+| Database persistence | `->preserveOnDB()` or `->preserveColumnWidthsInDatabase()` |
+| Per-table session control | `->preserveColumnWidthsInSession()` |
+| Standalone Livewire (no panel) | `HasResizableColumn` + `ResizedColumnPlugin::standalone()` |
+
+- Widths, order, and pinned columns persist **per user** in one settings row (session and/or database).
+- Works inside **Filament panels** and in **standalone Livewire components**.
+- Pinned columns use opaque backgrounds; resize is disabled on sticky headers.
+
+Full documentation lives in the `docs/` Nuxt site — start at **Features overview** (`/features/overview`).
 
 ## Installation
 You can install the package via composer:
@@ -115,6 +124,22 @@ public function table(Table $table): Table
 ```
 
 The user's pinned selection is persisted per user (session + database) alongside widths and order — no extra migration. Sticky is left-pin only in the current version.
+
+Customize the toolbar trigger (same idea as Filament's `columnManagerTriggerAction()`):
+
+```php
+use Filament\Actions\Action;
+
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([...])
+        ->stickableColumns()
+        ->stickyManagerTriggerAction(fn (Action $action) => $action
+            ->label('Pinned columns')
+            ->tooltip('Choose pinned columns'));
+}
+```
 
 ## Storage Configuration
 

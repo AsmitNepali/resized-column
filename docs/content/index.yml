@@ -76,19 +76,22 @@ features:
       description: Drag a column border to set its width. Widths stick per user and reapply on the next visit.
     - icon: i-lucide-grip-vertical
       title: Drag to reorder
-      description: A grip handle on each header reorders columns. The new order persists per user and is reapplied on load.
+      description: A grip handle on each header reorders columns. Sticky columns are excluded. Order persists per user.
     - icon: i-lucide-pin
-      title: Sticky (pinned) columns
-      description: Pin columns so they stay visible while the table scrolls horizontally. Declare defaults with sticky().
+      title: Sticky columns
+      description: Pin columns with sticky() so they stay visible during horizontal scroll. Left-pin only today.
     - icon: i-lucide-list-checks
-      title: User-controlled pinning
-      description: A Filament-styled "Pin columns" dropdown lets users pin and unpin columns themselves — their choice is remembered.
+      title: Pin columns panel
+      description: stickableColumns() adds a toolbar dropdown — draft pins, Select all / Deselect all, then Apply. Choices persist per user.
+    - icon: i-lucide-sliders-horizontal
+      title: Custom pin trigger
+      description: stickyManagerTriggerAction() customizes the Pin columns button — same pattern as columnManagerTriggerAction().
     - icon: i-lucide-database
       title: Persists per user
-      description: "Column widths, order, and pinned columns share one row. Choose session storage or database storage."
+      description: Widths, order, and pins share one settings row. Session by default, or database across devices.
     - icon: i-lucide-layers
       title: Panels & standalone Livewire
-      description: Works inside Filament panels and in plain Livewire components without a panel — same trait either way.
+      description: Works inside Filament panels and in plain Livewire components — one HasResizableColumn trait either way.
 metrics:
   headline: By the numbers
   title: "Tiny footprint, big flexibility."
