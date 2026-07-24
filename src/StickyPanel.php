@@ -28,7 +28,7 @@ class StickyPanel
         $action = static::defaultTriggerAction();
 
         if ($table !== null) {
-            $modifier = ResizedColumnTableRegistry::getStickyPanelActionModifier(
+            $modifier = ResizedColumnTableRegistry::getStickyManagerTriggerActionModifier(
                 get_class($table->getLivewire()),
             );
 

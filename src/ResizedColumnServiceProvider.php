@@ -120,11 +120,11 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
          *   return $table
          *       ->columns([...])
          *       ->stickableColumns()
-         *       ->stickyPanelAction(fn (Action $action) => $action->tooltip('My tooltip'));
+         *       ->stickyManagerTriggerAction(fn (Action $action) => $action->tooltip('My tooltip'));
          */
-        Table::macro('stickyPanelAction', function (?\Closure $callback): Table {
+        Table::macro('stickyManagerTriggerAction', function (?\Closure $callback): Table {
             /** @var Table $this */
-            ResizedColumnTableRegistry::stickyPanelAction(
+            ResizedColumnTableRegistry::stickyManagerTriggerAction(
                 get_class($this->getLivewire()),
                 $callback,
             );
