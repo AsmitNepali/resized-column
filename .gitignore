@@ -2,6 +2,6 @@
 /node_modules
 .DS_Store
 .idea/
-/resources/js
+/resources/js/debug-*.js
 .phpunit.result.cache
 /.phpunit.cache
