@@ -336,20 +336,18 @@ export function scheduleStickyRefresh() {
 
     const run = () => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                bootScheduled = false;
+            bootScheduled = false;
 
-                if (!stickyRefreshPending) {
-                    return;
-                }
+            if (!stickyRefreshPending) {
+                return;
+            }
 
-                stickyRefreshPending = false;
-                refreshStickyColumns();
+            stickyRefreshPending = false;
+            refreshStickyColumns();
 
-                if (stickyRefreshPending) {
-                    scheduleStickyRefresh();
-                }
-            });
+            if (stickyRefreshPending) {
+                scheduleStickyRefresh();
+            }
         });
     };
 

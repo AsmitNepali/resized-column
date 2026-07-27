@@ -6,6 +6,48 @@
     overflow: hidden;
 }
 
+/* Resize handle — painted via CSS so it appears with the header HTML. */
+thead th.fi-ta-header-cell[data-column-name]::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 0.625rem;
+    z-index: 2;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+    pointer-events: auto;
+    background: linear-gradient(
+        to right,
+        transparent calc(100% - 1px),
+        rgb(203 213 225 / 0.4) calc(100% - 1px),
+        rgb(203 213 225 / 0.4) 100%
+    );
+    transition: background 150ms ease;
+}
+
+.dark thead th.fi-ta-header-cell[data-column-name]::after {
+    background: linear-gradient(
+        to right,
+        transparent calc(100% - 1px),
+        rgb(148 163 184 / 0.35) calc(100% - 1px),
+        rgb(148 163 184 / 0.35) 100%
+    );
+}
+
+.group\/column-resize:hover::after,
+thead th.fi-ta-header-cell[data-column-name].resized-column-is-resizing::after {
+    background: linear-gradient(
+        to right,
+        transparent calc(100% - 2px),
+        rgb(var(--primary-500, 59 130 246) / 0.85) calc(100% - 2px),
+        rgb(var(--primary-500, 59 130 246) / 0.85) 100%
+    );
+}
+
+/* Legacy DOM handle (older cached assets). */
 .column-resize-handle-bar {
     position: absolute;
     top: 0;
@@ -80,7 +122,18 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
     z-index: 100 !important;
 }
 
-/* Visibility while scrolled is toggled via JS (.is-visible) — table cells ignore overflow. */
+/* Visibility while scrolled is toggled via JS on the header cell. */
+.fi-ta-table.resized-column-is-scrolled th[data-column-name]:not(.resized-column-handle-visible):not(.resized-column-is-resizing)::after {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.fi-ta-table.resized-column-is-scrolled th[data-column-name].resized-column-handle-visible::after,
+.fi-ta-table.resized-column-is-scrolled th[data-column-name].resized-column-is-resizing::after {
+    visibility: visible;
+    pointer-events: auto;
+}
+
 .fi-ta-table.resized-column-is-scrolled .column-resize-handle-bar:not(.active):not(.is-visible) {
     visibility: hidden;
     pointer-events: none;
@@ -109,10 +162,44 @@ body.resized-column-resizing * {
 
 /* Reserve space on the left of a reorderable header so the grip sits in a
    gutter instead of overlapping the label. */
-.resized-reorderable-col {
+.resized-reorderable-col,
+thead th.fi-ta-header-cell.resized-reorderable-col {
     padding-inline-start: 1.75rem !important;
 }
 
+/* Theme header cells use overflow-hidden; keep the grip visible in the gutter. */
+.fi-main .fi-ta .fi-ta-header-cell.resized-reorderable-col {
+    overflow: visible;
+}
+
+/* Reorder grip — SVG ::before (same pattern as pin icon) paints with the HTML. */
+thead th.fi-ta-header-cell.resized-reorderable-col:not([data-sticky])::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0.5rem;
+    transform: translateY(-50%);
+    display: block;
+    width: 0.65rem;
+    height: 0.85rem;
+    pointer-events: none;
+    z-index: 4;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Ccircle cx='7' cy='5' r='1.5'/%3E%3Ccircle cx='13' cy='5' r='1.5'/%3E%3Ccircle cx='7' cy='10' r='1.5'/%3E%3Ccircle cx='13' cy='10' r='1.5'/%3E%3Ccircle cx='7' cy='15' r='1.5'/%3E%3Ccircle cx='13' cy='15' r='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.dark thead th.fi-ta-header-cell.resized-reorderable-col:not([data-sticky])::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23cbd5e1'%3E%3Ccircle cx='7' cy='5' r='1.5'/%3E%3Ccircle cx='13' cy='5' r='1.5'/%3E%3Ccircle cx='7' cy='10' r='1.5'/%3E%3Ccircle cx='13' cy='10' r='1.5'/%3E%3Ccircle cx='7' cy='15' r='1.5'/%3E%3Ccircle cx='13' cy='15' r='1.5'/%3E%3C/svg%3E");
+}
+
+.group\/column-resize:hover.resized-reorderable-col::before,
+.resized-reorderable-col:hover::before {
+    opacity: 1;
+}
+
+/* Transparent hit target for Sortable; visual grip is the header ::before above. */
 .resized-col-drag {
     position: absolute;
     top: 50%;
@@ -121,18 +208,15 @@ body.resized-column-resizing * {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 1rem;
     height: 1rem;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
     cursor: grab;
-    opacity: 0.35;
-    line-height: 1;
-    letter-spacing: -0.15em;
-    color: rgb(148 163 184);
-    transition: opacity 0.15s ease;
+    opacity: 0;
     z-index: 5;
-}
-
-.group\/column-resize:hover .resized-col-drag {
-    opacity: 1;
 }
 
 .resized-col-drag:active {
@@ -143,7 +227,30 @@ body.resized-column-resizing * {
     opacity: 0.4;
 }
 
-/* Pin icon on pinned column headers (injected on the th, not inside sort-btn). */
+/* Pin icon on pinned column headers — CSS ::before paints with the HTML so
+   icons do not wait for Alpine init + Livewire morph + scheduleStickyRefresh. */
+thead th.fi-ta-header-cell[data-sticky]::before,
+thead th.fi-ta-header-cell.resized-sticky::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    display: block;
+    width: 0.85rem;
+    height: 0.85rem;
+    z-index: 2;
+    flex-shrink: 0;
+    pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath d='M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.dark thead th.fi-ta-header-cell[data-sticky]::before,
+.dark thead th.fi-ta-header-cell.resized-sticky::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'%3E%3Cpath d='M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z'/%3E%3C/svg%3E");
+}
+
+/* Legacy JS-injected span (kept for older cached assets / toggle variant). */
 .resized-sticky-pin {
     position: absolute;
     top: 50%;

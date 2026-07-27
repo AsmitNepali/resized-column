@@ -12,12 +12,24 @@ trait HasResizableColumn
     {
         $this->loadColumnWidths();
 
-        $this->applyColumnOrder();
-
         $this->seedStickyDefaults();
+    }
 
-        $this->applyStickyColumnOrder();
+    /**
+     * Apply layout here (not in boot) so table() has already registered
+     * ->dragReorderableColumns() / ->stickableColumns() on the registry.
+     */
+    public function rendering(): void
+    {
+        $this->applyResizedColumnLayout();
+    }
 
-        $this->applyAllColumnAttributes();
+    /**
+     * Livewire trait hook — mirrors rendering() so layout is reapplied even
+     * when only the trait hook path is invoked.
+     */
+    public function renderingHasResizableColumn(): void
+    {
+        $this->applyResizedColumnLayout();
     }
 }

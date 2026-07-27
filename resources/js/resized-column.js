@@ -1,26 +1,10 @@
 import Sortable from 'sortablejs';
 import { scheduleStickyRefresh } from './sticky-columns.js';
 
-const wireMorphHooks = new Set();
 const sortableInstances = new WeakMap();
 
 function slugifyColumnName(name) {
     return name.replace(/_/g, '-').replace(/\s+/g, '-');
-}
-
-function columnIdFromHeader(header) {
-    const xData = header.getAttribute('x-data') ?? '';
-    const match = xData.match(/resizedColumn\(\s*`[^`]*`\s*,\s*`([^`]+)`/);
-
-    if (match?.[1]) {
-        return match[1];
-    }
-
-    return slugifyColumnName(header.getAttribute('data-column-name') ?? '');
-}
-
-function resolveTable(wireId, tableSelector) {
-    return document.querySelector(`[wire\\:id="${wireId}"] ${tableSelector}`);
 }
 
 function escapeClass(className) {
@@ -29,6 +13,16 @@ function escapeClass(className) {
     }
 
     return className.replace(/\./g, '\\.');
+}
+
+function columnIdFromHeader(header) {
+    const columnId = header.getAttribute('data-column-id');
+
+    if (columnId) {
+        return columnId;
+    }
+
+    return slugifyColumnName(header.getAttribute('data-column-name') ?? '');
 }
 
 function destroySortableForRow(row) {
@@ -49,7 +43,7 @@ function createSortableForRow(row, onOrderChange) {
         handle: '.resized-col-drag',
         animation: 150,
         draggable: '[data-column-name]',
-        filter: '[data-sticky], .column-resize-handle-bar',
+        filter: '[data-sticky]',
         preventOnFilter: true,
         onMove(evt) {
             if (evt.related?.matches('[data-sticky]') && evt.willInsertAfter === false) {
@@ -64,10 +58,8 @@ function createSortableForRow(row, onOrderChange) {
                 const table = row.closest('.fi-ta-table');
 
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        refreshDragHandles(table);
-                        scheduleStickyRefresh();
-                    });
+                    refreshDragHandles(table);
+                    scheduleStickyRefresh();
                 });
             });
         },
@@ -90,8 +82,8 @@ function ensureDragHandleForHeader(header) {
     const grip = document.createElement('button');
     grip.type = 'button';
     grip.classList.add('resized-col-drag');
+    grip.setAttribute('aria-label', 'Drag to reorder');
     grip.setAttribute('title', 'Drag to reorder');
-    grip.innerHTML = '&#8942;&#8942;';
     header.prepend(grip);
 }
 
@@ -106,19 +98,7 @@ function refreshDragHandles(table) {
 }
 
 function ensureStickyPinForHeader(header) {
-    if (!header?.hasAttribute('data-sticky')) {
-        return;
-    }
-
-    if (header.querySelector('.resized-sticky-pin')) {
-        return;
-    }
-
-    const pin = document.createElement('span');
-    pin.classList.add('resized-sticky-pin');
-    pin.setAttribute('aria-hidden', 'true');
-    pin.setAttribute('title', 'Pinned column');
-    header.prepend(pin);
+    // Pins render via CSS ::before on [data-sticky] headers (see resized-column.css).
 }
 
 function refreshStickyPins(table) {
@@ -132,32 +112,11 @@ function refreshStickyPins(table) {
 }
 
 function ensureResizeHandleForHeader(header) {
-    if (!header || !header.hasAttribute('data-column-name')) {
-        return null;
+    if (!header?.hasAttribute('data-column-name')) {
+        return;
     }
 
     header.classList.add('group/column-resize');
-
-    const existing = header.querySelector('.column-resize-handle-bar');
-
-    if (existing) {
-        return existing;
-    }
-
-    const bar = document.createElement('button');
-    bar.type = 'button';
-    bar.classList.add('column-resize-handle-bar');
-    bar.setAttribute('aria-label', 'Resize column');
-    bar.setAttribute('title', 'Resize column');
-
-    const line = document.createElement('span');
-    line.classList.add('column-resize-handle-line');
-    line.setAttribute('aria-hidden', 'true');
-    bar.appendChild(line);
-
-    header.appendChild(bar);
-
-    return bar;
 }
 
 function refreshResizeHandles(table) {
@@ -196,19 +155,8 @@ function getLastLeftStickyHeader(table) {
     return stickyHeaders[stickyHeaders.length - 1] ?? null;
 }
 
-function isHandleWithinHeader(header, handle) {
-    const headerRect = header.getBoundingClientRect();
-    const handleRect = handle.getBoundingClientRect();
-    const inset = 1;
-
-    return handleRect.right <= headerRect.right + inset
-        && handleRect.left >= headerRect.left - inset
-        && handleRect.top >= headerRect.top - inset
-        && handleRect.bottom <= headerRect.bottom + inset;
-}
-
-function shouldShowResizeHandle(header, handle, wrapper, table) {
-    if (handle.classList.contains('active')) {
+function shouldShowResizeHandle(header, wrapper, table) {
+    if (header.classList.contains('resized-column-is-resizing')) {
         return true;
     }
 
@@ -233,21 +181,18 @@ function shouldShowResizeHandle(header, handle, wrapper, table) {
         }
     }
 
-    return isHandleWithinHeader(header, handle);
+    return true;
 }
 
 function updateResizeHandleVisibility(wrapper, table) {
     const isScrolled = wrapper.scrollLeft > 1;
     table.classList.toggle('resized-column-is-scrolled', isScrolled);
 
-    table.querySelectorAll('thead th[data-column-name] .column-resize-handle-bar').forEach((handle) => {
-        const header = handle.closest('th[data-column-name]');
-
-        if (!header) {
-            return;
-        }
-
-        handle.classList.toggle('is-visible', shouldShowResizeHandle(header, handle, wrapper, table));
+    table.querySelectorAll('thead th[data-column-name]').forEach((header) => {
+        header.classList.toggle(
+            'resized-column-handle-visible',
+            shouldShowResizeHandle(header, wrapper, table),
+        );
     });
 }
 
@@ -291,6 +236,10 @@ function bindResizeHeaderHover(table) {
     }, true);
 }
 
+function isTableReorderable(table) {
+    return table?.querySelector('th[data-resized-reorderable="true"]') !== null;
+}
+
 function refreshTableChrome(table) {
     if (!table) {
         return;
@@ -298,6 +247,12 @@ function refreshTableChrome(table) {
 
     refreshResizeHandles(table);
     refreshStickyPins(table);
+
+    if (isTableReorderable(table)) {
+        refreshDragHandles(table);
+        setupSortableForTable(table);
+    }
+
     bindResizeRows(table);
     bindResizeScroll(table);
     bindResizeHeaderHover(table);
@@ -313,11 +268,7 @@ const RESIZE_EDGE_ZONE_PX = 20;
 const boundResizeRows = new WeakSet();
 
 function getResizableHeaders(row) {
-    return Array.from(row.querySelectorAll('th[data-column-name]')).filter((header) => {
-        header.classList.add('group/column-resize');
-
-        return header.querySelector('.column-resize-handle-bar') !== null;
-    });
+    return Array.from(row.querySelectorAll('th[data-column-name]'));
 }
 
 function isOnReorderGrip(header, clientX) {
@@ -368,35 +319,18 @@ function resolveResizeTarget(event) {
         return null;
     }
 
-    const handleBar = event.target.closest('.column-resize-handle-bar');
-
-    if (handleBar) {
-        const header = handleBar.closest('th[data-column-name]');
-
-        if (header) {
-            return { header, handleBar };
-        }
-    }
-
-    const header = findHeaderForResizeAtX(row, event.clientX);
+    const header = event.target.closest('th[data-column-name]')
+        ?? findHeaderForResizeAtX(row, event.clientX);
 
     if (!header) {
         return null;
     }
 
-    const resolvedHandle = header.querySelector('.column-resize-handle-bar');
-
-    if (!resolvedHandle) {
-        return null;
-    }
-
-    return { header, handleBar: resolvedHandle };
+    return { header };
 }
 
-function beginColumnResize(header, event, handleBar = null) {
-    const activeHandleBar = handleBar ?? event.target.closest('.column-resize-handle-bar');
-
-    if (!activeHandleBar || !header) {
+function beginColumnResize(header, event) {
+    if (!header) {
         return;
     }
 
@@ -417,7 +351,6 @@ function beginColumnResize(header, event, handleBar = null) {
     event.stopPropagation();
     event.stopImmediatePropagation?.();
 
-    activeHandleBar.classList.add('active');
     header.classList.add('resized-column-is-resizing');
     document.body.classList.add('resized-column-resizing');
 
@@ -432,8 +365,12 @@ function beginColumnResize(header, event, handleBar = null) {
     let newColumnWidth = 0;
     const usePointer = typeof event.pointerId === 'number';
 
-    if (usePointer) {
-        activeHandleBar.setPointerCapture?.(event.pointerId);
+    if (usePointer && event.target.setPointerCapture) {
+        try {
+            event.target.setPointerCapture(event.pointerId);
+        } catch {
+            // Ignore if capture is not supported on this target.
+        }
     }
 
     const applyWidth = (width) => {
@@ -477,12 +414,15 @@ function beginColumnResize(header, event, handleBar = null) {
             return;
         }
 
-        activeHandleBar.classList.remove('active');
         header.classList.remove('resized-column-is-resizing');
         document.body.classList.remove('resized-column-resizing');
 
-        if (usePointer) {
-            activeHandleBar.releasePointerCapture?.(event.pointerId);
+        if (usePointer && event.target.releasePointerCapture) {
+            try {
+                event.target.releasePointerCapture(event.pointerId);
+            } catch {
+                // Ignore if capture was not set.
+            }
         }
 
         if (newColumnWidth > 0 && columnName) {
@@ -535,7 +475,7 @@ function handleResizePointerDown(event) {
         return;
     }
 
-    beginColumnResize(target.header, event, target.handleBar);
+    beginColumnResize(target.header, event);
 }
 
 function bindResizeRows(table) {
@@ -549,11 +489,97 @@ function bindResizeRows(table) {
     });
 }
 
-function initExistingTables() {
-    document.querySelectorAll('.fi-ta-table, table.fi-ta-table').forEach((table) => {
-        refreshTableChrome(table);
+function findResizedTables(root = document) {
+    const tables = new Set();
+
+    root.querySelectorAll('th[data-column-name]').forEach((header) => {
+        const table = header.closest('.fi-ta-table, table.fi-ta-table');
+
+        if (table) {
+            tables.add(table);
+        }
     });
+
+    return tables;
 }
+
+function onOrderChangeForTable(table) {
+    return (order) => {
+        const wireRoot = table.closest('[wire\\:id]');
+        const wireId = wireRoot?.getAttribute('wire:id');
+        const component = wireId ? window.Livewire?.find(wireId) : null;
+
+        if (component && typeof component.updateColumnOrder === 'function') {
+            return component.updateColumnOrder(order);
+        }
+    };
+}
+
+function setupSortableForTable(table) {
+    if (!isTableReorderable(table)) {
+        return;
+    }
+
+    const row = table.querySelector('thead tr');
+
+    if (!row) {
+        return;
+    }
+
+    createSortableForRow(row, onOrderChangeForTable(table));
+}
+
+function bootstrapResizedTable(table) {
+    if (!table) {
+        return;
+    }
+
+    refreshTableChrome(table);
+    scheduleStickyRefresh();
+}
+
+function bootstrapResizedTables(root = document) {
+    findResizedTables(root).forEach((table) => bootstrapResizedTable(table));
+}
+
+function initExistingTables() {
+    bootstrapResizedTables(document);
+}
+
+let livewireHooksBound = false;
+
+function bindLivewireTableHooks() {
+    if (livewireHooksBound || !window.Livewire) {
+        return;
+    }
+
+    livewireHooksBound = true;
+
+    const refresh = (payload = {}) => {
+        requestAnimationFrame(() => {
+            const root = payload.component?.el ?? payload.el ?? document;
+
+            bootstrapResizedTables(root);
+        });
+    };
+
+    window.Livewire.hook('commit', ({ succeed }) => {
+        succeed(() => refresh({}));
+    });
+
+    try {
+        window.Livewire.hook('morph.updated', refresh);
+    } catch {
+        // Hook may not exist in all Livewire versions.
+    }
+}
+
+document.addEventListener('livewire:init', bindLivewireTableHooks, { once: true });
+document.addEventListener('livewire:initialized', () => {
+    bindLivewireTableHooks();
+    bootstrapResizedTables(document);
+}, { once: true });
+document.addEventListener('livewire:navigated', () => bootstrapResizedTables(document));
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initExistingTables, { once: true });
@@ -589,195 +615,6 @@ document.addEventListener('resized-column:table-scrolled', (event) => {
 });
 
 document.addEventListener('alpine:init', () => {
-    Alpine.data('resizedColumn', function (columnName, columnId, reorderable = false) {
-        return {
-            tableWrapper: null,
-            table: null,
-            column: null,
-            minColumnWidth: 100,
-            maxColumnWidth: 1000,
-            handleBar: null,
-            tableWrapperContentSelector: '.fi-ta-content-ctn, .fi-ta-content',
-            tableSelector: '.fi-ta-table',
-            tableBodyCellPrefix: 'fi-ta-cell-',
-            debounceTime: 500,
-
-            init() {
-                this.column = this.$el;
-                this.table = this.$el.closest(this.tableSelector);
-                this.tableWrapper = this.$el.closest(this.tableWrapperContentSelector)
-                    ?? this.$el.closest('.fi-ta-ctn');
-
-                if (!this.column || !this.table) {
-                    return;
-                }
-
-                this.initializeColumnLayout();
-                this.setupReorder();
-                this.registerTableHooks();
-
-                this.$nextTick(() => {
-                    scheduleStickyRefresh();
-                    refreshTableChrome(this.table);
-                });
-            },
-
-            isTableCoordinator() {
-                const row = this.column.closest('thead tr');
-
-                return row?.querySelector('[data-column-name]') === this.column;
-            },
-
-            registerTableHooks() {
-                if (!this.isTableCoordinator()) {
-                    return;
-                }
-
-                const root = this.$el.closest('[wire\\:id]');
-                const wireId = root?.getAttribute('wire:id');
-
-                if (!wireId || wireMorphHooks.has(wireId)) {
-                    return;
-                }
-
-                wireMorphHooks.add(wireId);
-
-                const tableSelector = this.tableSelector;
-
-                window.Livewire.hook('morph.updated', ({ component }) => {
-                    if (component?.id !== wireId) {
-                        return;
-                    }
-
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            const table = resolveTable(wireId, tableSelector);
-
-                            if (!table) {
-                                return;
-                            }
-
-                            refreshTableChrome(table);
-
-                            if (reorderable) {
-                                const row = table.querySelector('thead tr');
-
-                                if (row) {
-                                    refreshDragHandles(table);
-
-                                    createSortableForRow(row, (order) => {
-                                        const livewireComponent = window.Livewire?.find(wireId);
-
-                                        if (livewireComponent && typeof livewireComponent.updateColumnOrder === 'function') {
-                                            return livewireComponent.updateColumnOrder(order);
-                                        }
-                                    });
-                                }
-                            }
-
-                            scheduleStickyRefresh();
-                        });
-                    });
-                });
-
-                this.onColumnResized = () => {
-                    scheduleStickyRefresh();
-                };
-
-                window.addEventListener('column-resized', this.onColumnResized);
-            },
-
-            initializeColumnLayout() {
-                this.column.classList.add('relative');
-                this.column.classList.add('group/column-resize');
-                this.createHandleBar();
-                ensureStickyPinForHeader(this.column);
-
-                if (reorderable && !this.column.hasAttribute('data-sticky')) {
-                    this.createDragHandle();
-                }
-            },
-
-            createDragHandle() {
-                ensureDragHandleForHeader(this.column);
-            },
-
-            setupReorder() {
-                if (!reorderable || !this.isTableCoordinator()) {
-                    return;
-                }
-
-                const row = this.column.closest('thead tr');
-
-                if (!row) {
-                    return;
-                }
-
-                createSortableForRow(row, (order) => {
-                    const wireRoot = this.$el.closest('[wire\\:id]');
-                    const wireId = wireRoot?.getAttribute('wire:id');
-                    const component = wireId ? window.Livewire?.find(wireId) : null;
-
-                    if (component && typeof component.updateColumnOrder === 'function') {
-                        return component.updateColumnOrder(order);
-                    }
-                });
-            },
-
-            createHandleBar() {
-                this.handleBar = ensureResizeHandleForHeader(this.column);
-            },
-
-            startResize(column) {
-                return (event) => beginColumnResize(column, event);
-            },
-
-            callLivewireMethod(method, params = []) {
-                try {
-                    if (this.$wire && typeof this.$wire[method] === 'function') {
-                        return this.$wire[method](...params);
-                    }
-                } catch (error) {
-                    // swallow — table will re-render on next Livewire round-trip
-                }
-            },
-
-            applyColumnWidth(column, width) {
-                this.setColumnWidthAttribute(column, width);
-
-                const bodyCellId = this.tableBodyCellPrefix + columnId;
-                const bodyCells = this.table.querySelectorAll(`.${escapeClass(bodyCellId)}`);
-
-                bodyCells.forEach((cell) => {
-                    this.setColumnWidthAttribute(cell, width);
-
-                    if (!cell.classList.contains('resized-sticky')) {
-                        cell.style.overflow = 'hidden';
-                    } else {
-                        cell.style.removeProperty('overflow');
-                    }
-                });
-            },
-
-            setColumnWidthAttribute(column, width) {
-                column.style.maxWidth = `${width}px`;
-                column.style.width = `${width}px`;
-                column.style.minWidth = `${width}px`;
-            },
-
-            debounce(func, wait) {
-                let debounceItem;
-
-                return function executedFunction(...args) {
-                    clearTimeout(debounceItem);
-                    debounceItem = setTimeout(() => {
-                        func(...args);
-                    }, wait);
-                };
-            },
-        };
-    });
-
     Alpine.data('resizedStickyPanel', () => ({
         open: false,
         columns: [],

@@ -9,7 +9,6 @@ use Asmit\ResizedColumn\StickyColumnRegistry;
 use Filament\Tables\Columns\Column;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Renderless;
 
 trait LoadResizedColumn
@@ -42,6 +41,19 @@ trait LoadResizedColumn
     protected bool $stickyPersisted = false;
 
     /**
+     * Re-apply persisted order, sticky grouping, and header/cell attributes.
+     * Runs on every render after table() has configured registry flags.
+     */
+    protected function applyResizedColumnLayout(): void
+    {
+        $this->applyColumnOrder();
+
+        $this->applyStickyColumnOrder();
+
+        $this->applyAllColumnAttributes();
+    }
+
+    /**
      * (Re)apply header/cell attributes to every column. Called on boot and
      * after runtime changes (e.g. sticky toggle) so the current render
      * reflects the new state without a page refresh.
@@ -63,14 +75,15 @@ trait LoadResizedColumn
         $styles = $this->getColumnStyles($width, $isSticky);
 
         $columnId = $this->getColumnHtmlId($columnName);
-        $reorderable = ResizedColumnTableRegistry::isReorderable(static::class) ? 'true' : 'false';
 
         $stickyHeader = [];
         $stickyCell = [];
 
         if ($isSticky) {
-            $stickyHeader = ['data-sticky' => 'left', 'class' => 'resized-sticky'];
+            $stickyHeader = ['data-sticky' => 'left', 'class' => 'resized-sticky group/column-resize'];
             $stickyCell = ['data-sticky' => 'left', 'class' => 'resized-sticky'];
+        } else {
+            $stickyHeader['class'] = 'group/column-resize';
         }
 
         if (ResizedColumnTableRegistry::isStickable(static::class)) {
@@ -81,9 +94,16 @@ trait LoadResizedColumn
             $stickyHeader['data-sticky-locked'] = 'true';
         }
 
+        if (ResizedColumnTableRegistry::isReorderable(static::class) && ! $isSticky) {
+            $stickyHeader['class'] = isset($stickyHeader['class'])
+                ? $stickyHeader['class'].' resized-reorderable-col'
+                : 'group/column-resize resized-reorderable-col';
+            $stickyHeader['data-resized-reorderable'] = 'true';
+        }
+
         $column->extraHeaderAttributes([
-            'x-data' => "resizedColumn(`{$columnName}`, `{$columnId}`, {$reorderable})",
             'data-column-name' => $columnName,
+            'data-column-id' => $columnId,
             ...$styles['header'],
             ...$stickyHeader,
         ])
@@ -321,7 +341,6 @@ trait LoadResizedColumn
      *
      * @return array<string, Column>
      */
-    #[Computed(cache: true)]
     protected function getCurrentTableColumns(): array
     {
         return $this->getTable()->getColumns();
