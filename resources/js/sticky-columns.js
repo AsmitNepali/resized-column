@@ -7,7 +7,6 @@ const ATTR = 'data-sticky';
 const ATTR_OFFSET = 'data-sticky-offset';
 const ATTR_Z = 'data-sticky-z-index';
 const APPLIED_ATTR = 'data-sticky-applied';
-const PIN_ATTR = 'data-sticky-pin-icon';
 
 let bootScheduled = false;
 let stickyRefreshPending = false;
@@ -58,8 +57,6 @@ function getStickyDecl(cell) {
 }
 
 function resetStickyPresentation() {
-    document.querySelectorAll(`[${PIN_ATTR}], .resized-sticky-pin`).forEach((el) => el.remove());
-
     document.querySelectorAll(`[${APPLIED_ATTR}]`).forEach((el) => {
         el.removeAttribute(APPLIED_ATTR);
         el.classList.remove('sticky-shadow-active');
@@ -144,35 +141,11 @@ function getCellColSpan(cell) {
     return span && span > 1 ? span : 1;
 }
 
-function ensureStickyHeaderPin(cell) {
-    if (cell.querySelector(`[${PIN_ATTR}], .resized-sticky-pin`)) {
-        return;
-    }
-
-    const target =
-        cell.querySelector('.fi-ta-header-cell-sort-btn')
-        || cell.firstElementChild
-        || cell;
-
-    const pin = document.createElement('span');
-    pin.setAttribute(PIN_ATTR, '');
-    pin.classList.add('resized-sticky-pin');
-    pin.setAttribute('aria-hidden', 'true');
-    pin.setAttribute('title', 'Pinned column');
-    pin.innerHTML = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z"/></svg>';
-
-    target.insertBefore(pin, target.firstChild);
-}
-
 function applyStickyStyles(cell, config, isHeader) {
     cell.style.position = 'sticky';
     cell.style[config.position] = `${config.offset}px`;
     cell.style.zIndex = String(isHeader ? config.zIndex + 10 : config.zIndex);
     cell.setAttribute(APPLIED_ATTR, config.position);
-
-    if (isHeader) {
-        ensureStickyHeaderPin(cell);
-    }
 }
 
 function applyStickyToRow(cells, stickyMap, isHeader) {
@@ -270,8 +243,12 @@ function updateTableScrollShadow(wrapper, table) {
         if (lastLeftSticky) {
             const columnIndex = Array.from(headerRow.children).indexOf(lastLeftSticky);
 
-            table.querySelectorAll('thead tr, tbody tr, tfoot tr').forEach((row) => {
-                row.children[columnIndex]?.classList.add('sticky-shadow-active');
+            table.querySelectorAll('tbody tr, tfoot tr').forEach((row) => {
+                const cell = row.children[columnIndex];
+
+                if (cell?.hasAttribute(APPLIED_ATTR)) {
+                    cell.classList.add('sticky-shadow-active');
+                }
             });
         }
     }
@@ -285,8 +262,12 @@ function updateTableScrollShadow(wrapper, table) {
         if (firstRightSticky) {
             const columnIndex = Array.from(headerRow.children).indexOf(firstRightSticky);
 
-            table.querySelectorAll('thead tr, tbody tr, tfoot tr').forEach((row) => {
-                row.children[columnIndex]?.classList.add('sticky-shadow-active');
+            table.querySelectorAll('tbody tr, tfoot tr').forEach((row) => {
+                const cell = row.children[columnIndex];
+
+                if (cell?.hasAttribute(APPLIED_ATTR)) {
+                    cell.classList.add('sticky-shadow-active');
+                }
             });
         }
     }
@@ -327,6 +308,17 @@ export function refreshStickyColumns() {
     resetStickyPresentation();
     applyStickyColumns();
     bindScrollShadows();
+    notifyResizeHandlesRefresh();
+}
+
+function notifyResizeHandlesRefresh() {
+    document.querySelectorAll('.fi-ta-table, table.fi-ta-table').forEach((table) => {
+        if (!table.querySelector('thead th[data-column-name]')) {
+            return;
+        }
+
+        table.dispatchEvent(new CustomEvent('resized-column:sticky-refreshed', { bubbles: true }));
+    });
 }
 
 export function scheduleStickyRefresh() {
@@ -390,7 +382,6 @@ export function initStickyColumns() {
     document.addEventListener('livewire:initialized', bindLivewireHooks);
     document.addEventListener('livewire:navigated', scheduleStickyRefresh);
     document.addEventListener('livewire:update', scheduleStickyRefresh);
-    document.addEventListener('alpine:initialized', refreshStickyColumns);
 
     window.ResizedColumnSticky = { refresh: refreshStickyColumns };
 }

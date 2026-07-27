@@ -49,7 +49,8 @@ function createSortableForRow(row, onOrderChange) {
         handle: '.resized-col-drag',
         animation: 150,
         draggable: '[data-column-name]',
-        filter: '[data-sticky]',
+        filter: '[data-sticky], .column-resize-handle-bar',
+        preventOnFilter: true,
         onMove(evt) {
             if (evt.related?.matches('[data-sticky]') && evt.willInsertAfter === false) {
                 return false;
@@ -104,6 +105,313 @@ function refreshDragHandles(table) {
     });
 }
 
+function ensureStickyPinForHeader(header) {
+    if (!header?.hasAttribute('data-sticky')) {
+        return;
+    }
+
+    if (header.querySelector('.resized-sticky-pin')) {
+        return;
+    }
+
+    const pin = document.createElement('span');
+    pin.classList.add('resized-sticky-pin');
+    pin.setAttribute('aria-hidden', 'true');
+    pin.setAttribute('title', 'Pinned column');
+    header.prepend(pin);
+}
+
+function refreshStickyPins(table) {
+    if (!table) {
+        return;
+    }
+
+    table.querySelectorAll('thead th[data-column-name][data-sticky]').forEach((header) => {
+        ensureStickyPinForHeader(header);
+    });
+}
+
+function ensureResizeHandleForHeader(header) {
+    if (!header || !header.hasAttribute('data-column-name')) {
+        return null;
+    }
+
+    header.classList.add('group/column-resize');
+
+    const existing = header.querySelector('.column-resize-handle-bar');
+
+    if (existing) {
+        return existing;
+    }
+
+    const bar = document.createElement('button');
+    bar.type = 'button';
+    bar.classList.add('column-resize-handle-bar');
+    bar.setAttribute('aria-label', 'Resize column');
+    bar.setAttribute('title', 'Resize column');
+
+    const line = document.createElement('span');
+    line.classList.add('column-resize-handle-line');
+    line.setAttribute('aria-hidden', 'true');
+    bar.appendChild(line);
+
+    header.appendChild(bar);
+
+    return bar;
+}
+
+function refreshResizeHandles(table) {
+    if (!table) {
+        return;
+    }
+
+    table.querySelectorAll('thead th[data-column-name]').forEach((header) => {
+        ensureResizeHandleForHeader(header);
+    });
+}
+
+function refreshTableChrome(table) {
+    if (!table) {
+        return;
+    }
+
+    refreshResizeHandles(table);
+    refreshStickyPins(table);
+    bindResizeRows(table);
+}
+
+const RESIZE_EDGE_ZONE_PX = 20;
+const boundResizeRows = new WeakSet();
+
+function getResizableHeaders(row) {
+    return Array.from(row.querySelectorAll('th[data-column-name]')).filter((header) => {
+        header.classList.add('group/column-resize');
+
+        return header.querySelector('.column-resize-handle-bar') !== null;
+    });
+}
+
+function findHeaderForResizeAtX(row, clientX) {
+    const headers = getResizableHeaders(row);
+
+    for (let index = 0; index < headers.length; index++) {
+        const header = headers[index];
+        const { left, right } = header.getBoundingClientRect();
+
+        // When a sticky header is covered by the next column, clicks on that
+        // neighbour's left gutter should resize the preceding column.
+        if (index > 0 && clientX >= left && clientX <= left + RESIZE_EDGE_ZONE_PX) {
+            return headers[index - 1];
+        }
+
+        if (clientX >= right - RESIZE_EDGE_ZONE_PX && clientX <= right + 8) {
+            return header;
+        }
+    }
+
+    return null;
+}
+
+function resolveResizeTarget(event) {
+    const row = event.target.closest('thead tr');
+
+    if (!row) {
+        return null;
+    }
+
+    const handleBar = event.target.closest('.column-resize-handle-bar');
+
+    if (handleBar) {
+        const header = handleBar.closest('th[data-column-name]');
+
+        if (header) {
+            return { header, handleBar };
+        }
+    }
+
+    const header = findHeaderForResizeAtX(row, event.clientX);
+
+    if (!header) {
+        return null;
+    }
+
+    const resolvedHandle = header.querySelector('.column-resize-handle-bar');
+
+    if (!resolvedHandle) {
+        return null;
+    }
+
+    return { header, handleBar: resolvedHandle };
+}
+
+function beginColumnResize(header, event, handleBar = null) {
+    const activeHandleBar = handleBar ?? event.target.closest('.column-resize-handle-bar');
+
+    if (!activeHandleBar || !header) {
+        return;
+    }
+
+    const table = header.closest('.fi-ta-table');
+
+    if (!table) {
+        return;
+    }
+
+    const tableWrapper = header.closest('.fi-ta-content-ctn, .fi-ta-content')
+        ?? header.closest('.fi-ta-ctn');
+
+    if (!tableWrapper) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+
+    activeHandleBar.classList.add('active');
+    header.classList.add('resized-column-is-resizing');
+    document.body.classList.add('resized-column-resizing');
+
+    const columnName = header.getAttribute('data-column-name');
+    const columnId = columnIdFromHeader(header);
+    const startX = event.pageX;
+    const initialColumnWidth = Math.round(header.offsetWidth);
+    const initialTableWidth = Math.round(table.offsetWidth);
+    const initialTableWrapperWidth = Math.round(tableWrapper.offsetWidth);
+    const minColumnWidth = 100;
+    const maxColumnWidth = 1000;
+    let newColumnWidth = 0;
+    const usePointer = typeof event.pointerId === 'number';
+
+    if (usePointer) {
+        activeHandleBar.setPointerCapture?.(event.pointerId);
+    }
+
+    const applyWidth = (width) => {
+        header.style.maxWidth = `${width}px`;
+        header.style.width = `${width}px`;
+        header.style.minWidth = `${width}px`;
+
+        table.querySelectorAll(`.${escapeClass(`fi-ta-cell-${columnId}`)}`).forEach((cell) => {
+            cell.style.maxWidth = `${width}px`;
+            cell.style.width = `${width}px`;
+            cell.style.minWidth = `${width}px`;
+        });
+    };
+
+    const onMove = (moveEvent) => {
+        if (usePointer && moveEvent.pointerId !== event.pointerId) {
+            return;
+        }
+
+        if (moveEvent.pageX === startX) {
+            return;
+        }
+
+        newColumnWidth = Math.round(Math.min(
+            maxColumnWidth,
+            Math.max(
+                minColumnWidth,
+                initialColumnWidth + (moveEvent.pageX - startX),
+            ),
+        ));
+
+        const newTableWidth = initialTableWidth - initialColumnWidth + newColumnWidth;
+        table.style.width = `${newTableWidth > initialTableWrapperWidth ? newTableWidth : 'auto'}px`;
+
+        applyWidth(newColumnWidth);
+        scheduleStickyRefresh();
+    };
+
+    const onEnd = (endEvent) => {
+        if (usePointer && endEvent.pointerId !== event.pointerId) {
+            return;
+        }
+
+        activeHandleBar.classList.remove('active');
+        header.classList.remove('resized-column-is-resizing');
+        document.body.classList.remove('resized-column-resizing');
+
+        if (usePointer) {
+            activeHandleBar.releasePointerCapture?.(event.pointerId);
+        }
+
+        if (newColumnWidth > 0 && columnName) {
+            const wireRoot = header.closest('[wire\\:id]');
+            const wireId = wireRoot?.getAttribute('wire:id');
+            const component = wireId ? window.Livewire?.find(wireId) : null;
+
+            if (component && typeof component.updateColumnWidth === 'function') {
+                component.updateColumnWidth(columnName, newColumnWidth);
+            }
+        }
+
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onEnd);
+        document.removeEventListener('pointercancel', onEnd);
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+        scheduleStickyRefresh();
+    };
+
+    if (usePointer) {
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onEnd);
+        document.addEventListener('pointercancel', onEnd);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+}
+
+function handleResizePointerDown(event) {
+    if (event.button !== 0) {
+        return;
+    }
+
+    const target = resolveResizeTarget(event);
+
+    if (!target) {
+        return;
+    }
+
+    beginColumnResize(target.header, event, target.handleBar);
+}
+
+function bindResizeRows(table) {
+    table.querySelectorAll('thead tr').forEach((row) => {
+        if (boundResizeRows.has(row)) {
+            return;
+        }
+
+        boundResizeRows.add(row);
+        row.addEventListener('pointerdown', handleResizePointerDown, { capture: true });
+    });
+}
+
+function initExistingTables() {
+    document.querySelectorAll('.fi-ta-table, table.fi-ta-table').forEach((table) => {
+        refreshTableChrome(table);
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initExistingTables, { once: true });
+} else {
+    initExistingTables();
+}
+
+document.addEventListener('resized-column:sticky-refreshed', (event) => {
+    const table = event.target?.closest?.('.fi-ta-table, table.fi-ta-table')
+        ?? (event.target?.matches?.('.fi-ta-table, table.fi-ta-table') ? event.target : null);
+
+    if (!table) {
+        return;
+    }
+
+    refreshTableChrome(table);
+});
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('resizedColumn', function (columnName, columnId, reorderable = false) {
         return {
@@ -134,6 +442,7 @@ document.addEventListener('alpine:init', () => {
 
                 this.$nextTick(() => {
                     scheduleStickyRefresh();
+                    refreshTableChrome(this.table);
                 });
             },
 
@@ -165,29 +474,33 @@ document.addEventListener('alpine:init', () => {
                     }
 
                     requestAnimationFrame(() => {
-                        const table = resolveTable(wireId, tableSelector);
+                        requestAnimationFrame(() => {
+                            const table = resolveTable(wireId, tableSelector);
 
-                        if (!table) {
-                            return;
-                        }
-
-                        if (reorderable) {
-                            const row = table.querySelector('thead tr');
-
-                            if (row) {
-                                refreshDragHandles(table);
-
-                                createSortableForRow(row, (order) => {
-                                    const livewireComponent = window.Livewire?.find(wireId);
-
-                                    if (livewireComponent && typeof livewireComponent.updateColumnOrder === 'function') {
-                                        return livewireComponent.updateColumnOrder(order);
-                                    }
-                                });
+                            if (!table) {
+                                return;
                             }
-                        }
 
-                        scheduleStickyRefresh();
+                            refreshTableChrome(table);
+
+                            if (reorderable) {
+                                const row = table.querySelector('thead tr');
+
+                                if (row) {
+                                    refreshDragHandles(table);
+
+                                    createSortableForRow(row, (order) => {
+                                        const livewireComponent = window.Livewire?.find(wireId);
+
+                                        if (livewireComponent && typeof livewireComponent.updateColumnOrder === 'function') {
+                                            return livewireComponent.updateColumnOrder(order);
+                                        }
+                                    });
+                                }
+                            }
+
+                            scheduleStickyRefresh();
+                        });
                     });
                 });
 
@@ -200,14 +513,9 @@ document.addEventListener('alpine:init', () => {
 
             initializeColumnLayout() {
                 this.column.classList.add('relative');
-
-                if (this.column.hasAttribute('data-sticky')) {
-                    this.column.classList.remove('group/column-resize');
-                    this.column.querySelector('.column-resize-handle-bar')?.remove();
-                } else {
-                    this.column.classList.add('group/column-resize');
-                    this.createHandleBar();
-                }
+                this.column.classList.add('group/column-resize');
+                this.createHandleBar();
+                ensureStickyPinForHeader(this.column);
 
                 if (reorderable && !this.column.hasAttribute('data-sticky')) {
                     this.createDragHandle();
@@ -241,67 +549,11 @@ document.addEventListener('alpine:init', () => {
             },
 
             createHandleBar() {
-                this.handleBar = document.createElement('button');
-                this.handleBar.type = 'button';
-                this.handleBar.classList.add('column-resize-handle-bar');
-
-                this.column.querySelector('.column-resize-handle-bar')?.remove();
-
-                this.column.appendChild(this.handleBar);
-                this.handleBar.addEventListener('mousedown', this.startResize(this.column));
+                this.handleBar = ensureResizeHandleForHeader(this.column);
             },
 
             startResize(column) {
-                return (e) => {
-                    if (!this.tableWrapper) {
-                        return;
-                    }
-
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.handleBar.classList.add('active');
-
-                    const startX = e.pageX;
-                    const initialColumnWidth = Math.round(column.offsetWidth);
-                    const initialTableWidth = Math.round(this.table.offsetWidth);
-                    const initialTableWrapperWidth = Math.round(this.tableWrapper.offsetWidth);
-
-                    let newColumnWidth = 0;
-
-                    const onMouseMove = (moveEvent) => {
-                        if (moveEvent.pageX === startX) {
-                            return;
-                        }
-
-                        newColumnWidth = Math.round(Math.min(
-                            this.maxColumnWidth,
-                            Math.max(
-                                this.minColumnWidth,
-                                initialColumnWidth + (moveEvent.pageX - startX) - 16,
-                            ),
-                        ));
-
-                        const newTableWidth = initialTableWidth - initialColumnWidth + newColumnWidth;
-                        this.table.style.width = `${newTableWidth > initialTableWrapperWidth ? newTableWidth : 'auto'}px`;
-
-                        this.applyColumnWidth(column, newColumnWidth);
-                        this.$dispatch('column-resized');
-                    };
-
-                    const onMouseUp = () => {
-                        this.handleBar.classList.remove('active');
-
-                        this.debounce(() => {
-                            this.callLivewireMethod('updateColumnWidth', [columnName, newColumnWidth]);
-                        }, this.debounceTime)();
-
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
-                    };
-
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                };
+                return (event) => beginColumnResize(column, event);
             },
 
             callLivewireMethod(method, params = []) {

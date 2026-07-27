@@ -27,7 +27,7 @@ The **Resizable Columns** plugin allows you to resize table columns in Filament 
 
 - Widths, order, and pinned columns persist **per user** in one settings row (session and/or database).
 - Works inside **Filament panels** and in **standalone Livewire components**.
-- Pinned columns use opaque backgrounds; resize is disabled on sticky headers.
+- Pinned columns use opaque backgrounds; resize works on sticky headers and body cells.
 
 Full documentation lives in the `docs/` Nuxt site — start at **Features overview** (`/features/overview`).
 

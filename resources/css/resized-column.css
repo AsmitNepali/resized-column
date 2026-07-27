@@ -7,48 +7,93 @@
 
 .column-resize-handle-bar {
     position: absolute;
-    top: 50%;
-    height: 66.666667%;
-    transform: translateY(-50%);
-    width: 1rem;
+    top: 0;
+    bottom: 0;
+    right: -0.25rem;
+    width: 0.875rem;
     cursor: col-resize;
     user-select: none;
     touch-action: none;
-    right: -0.5rem;
-    z-index: 10;
+    z-index: 30;
     display: flex;
+    align-items: center;
     justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    appearance: none;
+    pointer-events: auto;
 }
 
-.column-resize-handle-bar::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
+.column-resize-handle-line {
+    display: block;
     width: 1px;
-    background-color: rgb(209 213 219);
-    transform: translateX(1px);
-    transition-property: all;
-    transition-duration: 300ms;
+    height: 66.666667%;
+    flex-shrink: 0;
+    border-radius: 1px;
+    background-color: rgb(203 213 219);
+    opacity: 0.4;
+    pointer-events: auto;
+    transition: opacity 150ms ease, background-color 150ms ease, width 150ms ease;
 }
 
-.dark .column-resize-handle-bar::before {
-    background-color: rgba(255, 255, 255, 0.05);
+.dark .column-resize-handle-line {
+    background-color: rgb(148 163 184);
+    opacity: 0.35;
 }
 
-.column-resize-handle-bar:hover::before,
-.column-resize-handle-bar.active::before {
+.fi-main .fi-ta .fi-ta-header-cell .column-resize-handle-line {
+    background-color: rgb(203 213 219);
+}
+
+.dark .fi-main .fi-ta .fi-ta-header-cell .column-resize-handle-line {
+    background-color: rgb(148 163 184);
+}
+
+.group\/column-resize:hover .column-resize-handle-line,
+.column-resize-handle-bar:hover .column-resize-handle-line,
+.column-resize-handle-bar.active .column-resize-handle-line {
     width: 2px;
-    background-color: rgb(from var(--primary-500) r g b);
+    opacity: 0.85;
+    background-color: rgb(var(--primary-500, 59 130 246));
 }
 
-/* Active resize handle */
-.column-resize-handle-bar.active::before {
-    width: 4px !important;
-}
 /* Table header cell styles */
 .fi-ta-header-cell {
     position: relative;
+}
+
+.fi-ta-header-cell .fi-ta-header-cell-sort-btn,
+.fi-ta-header-cell .fi-ta-header-cell-tooltip {
+    position: relative;
+    z-index: 1;
+}
+
+.fi-ta-header-cell .column-resize-handle-bar {
+    z-index: 30;
+}
+
+/* Keep the column being resized above adjacent sticky headers. */
+thead th.fi-ta-header-cell.resized-column-is-resizing,
+thead th.fi-ta-header-cell.group\/column-resize:has(.column-resize-handle-bar:hover),
+thead th.fi-ta-header-cell.group\/column-resize:has(.column-resize-handle-bar.active) {
+    z-index: 100 !important;
+}
+
+/* Keep sort label from covering the resize gutter inside the same header. */
+.group\/column-resize .fi-ta-header-cell-sort-btn {
+    width: calc(100% - 1rem);
+    max-width: calc(100% - 1rem);
+}
+
+body.resized-column-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+}
+
+body.resized-column-resizing * {
+    cursor: col-resize !important;
 }
 
 /* Reserve space on the left of a reorderable header so the grip sits in a
@@ -86,25 +131,29 @@
     opacity: 0.4;
 }
 
-/* Pin icon / toggle marking a sticky (pinned) column header */
+/* Pin icon on pinned column headers (injected on the th, not inside sort-btn). */
 .resized-sticky-pin {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    display: block;
     width: 0.85rem;
     height: 0.85rem;
-    margin-inline-end: 0.35rem;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    color: rgb(var(--primary-500, 234 179 8));
+    z-index: 2;
     flex-shrink: 0;
     pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath d='M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.resized-sticky-pin svg {
-    width: 100%;
-    height: 100%;
+.dark .resized-sticky-pin {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'%3E%3Cpath d='M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z'/%3E%3C/svg%3E");
+}
+
+thead th.fi-ta-header-cell[data-sticky="left"],
+thead th.fi-ta-header-cell[data-sticky="right"],
+thead th.fi-ta-header-cell.resized-sticky {
+    padding-inline-start: 2rem !important;
 }
 
 /* Clickable toggle variant (stickable tables): faint when unpinned, solid
@@ -112,9 +161,8 @@
 .resized-sticky-pin.is-toggle {
     pointer-events: auto;
     cursor: pointer;
-    color: rgb(148 163 184);
     opacity: 0.55;
-    transition: opacity 0.15s ease, color 0.15s ease;
+    transition: opacity 0.15s ease;
 }
 
 .resized-sticky-pin.is-toggle:hover {
@@ -122,7 +170,6 @@
 }
 
 .resized-sticky-pin.is-toggle.is-pinned {
-    color: rgb(var(--primary-500, 234 179 8));
     opacity: 1;
 }
 
@@ -191,17 +238,17 @@
     box-shadow: none;
 }
 
-/* Inset vertical edge on the last left-pinned column (not clipped by overflow:hidden). */
-[data-sticky-applied="left"].sticky-shadow-active {
+/* Inset edge on last pinned column when scrolled (body rows only). */
+[data-sticky-applied="left"].sticky-shadow-active:not(.fi-ta-header-cell) {
     box-shadow: inset -6px 0 8px -6px var(--sticky-shadow-color, rgba(0, 0, 0, 0.18));
 }
 
-[data-sticky-applied="right"].sticky-shadow-active {
+[data-sticky-applied="right"].sticky-shadow-active:not(.fi-ta-header-cell) {
     box-shadow: inset 6px 0 8px -6px var(--sticky-shadow-color, rgba(0, 0, 0, 0.18));
 }
 
-.dark [data-sticky-applied="left"].sticky-shadow-active,
-.dark [data-sticky-applied="right"].sticky-shadow-active {
+.dark [data-sticky-applied="left"].sticky-shadow-active:not(.fi-ta-header-cell),
+.dark [data-sticky-applied="right"].sticky-shadow-active:not(.fi-ta-header-cell) {
     --sticky-shadow-color: rgba(0, 0, 0, 0.45);
 }
 
