@@ -15,7 +15,7 @@ class Setup
                 return false;
             }
             return filament()->hasPlugin('asmit-resized-column') && filament()->getDefaultPanel();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) { // filament() is undefined without filament/panels
             return false;
         }
     }
