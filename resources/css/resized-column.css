@@ -308,24 +308,32 @@ thead th.fi-ta-header-cell.resized-sticky {
 
 /*
  * Sticky surface tokens — opaque backgrounds so scrolled columns do not bleed through.
- * Defaults mirror Filament v4 table surfaces; host apps override on .fi-ta-ctn or .fi-ta-table.
+ * Defaults resolve to Filament's own table surface variables (light + dark).
  *
- * --resized-sticky-header-bg       Pinned header cells
- * --resized-sticky-cell-bg         Pinned body cells (default row)
+ * Override any of these anywhere (:root, .fi-ta-ctn, a single table) and it wins,
+ * because the defaults live in the var() fallback chain, not in a competing declaration:
+ *
+ * --resized-sticky-header-bg        Pinned header cells
+ * --resized-sticky-cell-bg          Pinned body cells (default row)
  * --resized-sticky-cell-bg-emphasis Pinned body cells (striped, hover, selected)
  */
-.fi-ta-ctn,
-.fi-ta-content-ctn {
-    --resized-sticky-header-bg: rgb(255 255 255);
-    --resized-sticky-cell-bg: rgb(255 255 255);
-    --resized-sticky-cell-bg-emphasis: rgb(249 250 251);
+:root {
+    --resized-sticky-surface: var(--color-white, #fff);
+    /* Filament tints the header row: .fi-ta-table > thead > tr { background: --gray-50 } */
+    --resized-sticky-surface-header: var(--gray-50, #f9fafb);
+    --resized-sticky-surface-emphasis: var(--gray-50, #f9fafb);
 }
 
+/* Filament toggles `.dark` on <html>, so scope the dark surfaces there — a table
+   rendered outside .fi-ta-ctn (modal, widget, custom view) still resolves.
+   Filament's dark tints are translucent (5% white over the surface); a pinned cell
+   has to be opaque, so composite the same colour instead. */
+.dark,
 .dark .fi-ta-ctn,
 .dark .fi-ta-content-ctn {
-    --resized-sticky-header-bg: color-mix(in srgb, white 5%, rgb(17 24 39));
-    --resized-sticky-cell-bg: rgb(17 24 39);
-    --resized-sticky-cell-bg-emphasis: color-mix(in srgb, white 5%, rgb(17 24 39));
+    --resized-sticky-surface: var(--gray-900, #111827);
+    --resized-sticky-surface-header: color-mix(in oklab, var(--color-white, #fff) 5%, var(--gray-900, #111827));
+    --resized-sticky-surface-emphasis: color-mix(in oklab, var(--color-white, #fff) 5%, var(--gray-900, #111827));
 }
 
 /* JS-applied sticky cells */
@@ -338,18 +346,24 @@ thead th.fi-ta-header-cell.resized-sticky {
     isolation: isolate;
 }
 
+/* Every pinned cell is opaque — body, footer/summary, selection cell, whatever
+   Filament renders. Keyed off the attribute alone so a cell without .fi-ta-cell
+   never scrolls transparent. */
+[data-sticky-applied] {
+    background-color: var(--resized-sticky-cell-bg, var(--resized-sticky-surface)) !important;
+}
+
+thead [data-sticky-applied],
 [data-sticky-applied].fi-ta-header-cell {
-    background-color: var(--resized-sticky-header-bg) !important;
+    background-color: var(--resized-sticky-header-bg, var(--resized-sticky-surface-header)) !important;
 }
 
-[data-sticky-applied].fi-ta-cell {
-    background-color: var(--resized-sticky-cell-bg) !important;
-}
-
-.fi-ta-row.fi-striped [data-sticky-applied].fi-ta-cell,
-.fi-ta-row.fi-clickable:hover [data-sticky-applied].fi-ta-cell,
-.fi-ta-row.fi-selected [data-sticky-applied].fi-ta-cell {
-    background-color: var(--resized-sticky-cell-bg-emphasis) !important;
+/* Striped/hover/selected rows: Filament tints the <tr>, so the pinned cell has to
+   repaint that tint opaquely or the scrolled columns show through it. */
+.fi-ta-row.fi-striped [data-sticky-applied],
+.fi-ta-row.fi-clickable:hover [data-sticky-applied],
+.fi-ta-row.fi-selected [data-sticky-applied] {
+    background-color: var(--resized-sticky-cell-bg-emphasis, var(--resized-sticky-surface-emphasis)) !important;
 }
 
 [data-sticky-applied="left"],
