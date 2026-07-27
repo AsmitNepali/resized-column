@@ -140,7 +140,29 @@
     -webkit-overflow-scrolling: touch;
 }
 
-/* JS-applied sticky cells — opaque surfaces via CSS (not inline JS) */
+/*
+ * Sticky surface tokens — opaque backgrounds so scrolled columns do not bleed through.
+ * Defaults mirror Filament v4 table surfaces; host apps override on .fi-ta-ctn or .fi-ta-table.
+ *
+ * --resized-sticky-header-bg       Pinned header cells
+ * --resized-sticky-cell-bg         Pinned body cells (default row)
+ * --resized-sticky-cell-bg-emphasis Pinned body cells (striped, hover, selected)
+ */
+.fi-ta-ctn,
+.fi-ta-content-ctn {
+    --resized-sticky-header-bg: rgb(255 255 255);
+    --resized-sticky-cell-bg: rgb(255 255 255);
+    --resized-sticky-cell-bg-emphasis: rgb(249 250 251);
+}
+
+.dark .fi-ta-ctn,
+.dark .fi-ta-content-ctn {
+    --resized-sticky-header-bg: color-mix(in srgb, white 5%, rgb(17 24 39));
+    --resized-sticky-cell-bg: rgb(17 24 39);
+    --resized-sticky-cell-bg-emphasis: color-mix(in srgb, white 5%, rgb(17 24 39));
+}
+
+/* JS-applied sticky cells */
 [data-sticky-applied] {
     transition: box-shadow 150ms ease;
     -webkit-transform: translateZ(0);
@@ -151,31 +173,17 @@
 }
 
 [data-sticky-applied].fi-ta-header-cell {
-    background-color: #eaeef2 !important;
-}
-
-.dark [data-sticky-applied].fi-ta-header-cell {
-    background-color: color-mix(in srgb, white 5%, rgb(17 24 39)) !important;
+    background-color: var(--resized-sticky-header-bg) !important;
 }
 
 [data-sticky-applied].fi-ta-cell {
-    background-color: rgb(255 255 255) !important;
+    background-color: var(--resized-sticky-cell-bg) !important;
 }
 
 .fi-ta-row.fi-striped [data-sticky-applied].fi-ta-cell,
-.fi-ta-row:hover [data-sticky-applied].fi-ta-cell,
+.fi-ta-row.fi-clickable:hover [data-sticky-applied].fi-ta-cell,
 .fi-ta-row.fi-selected [data-sticky-applied].fi-ta-cell {
-    background-color: rgb(249 250 251) !important;
-}
-
-.dark [data-sticky-applied].fi-ta-cell {
-    background-color: rgb(17 24 39) !important;
-}
-
-.dark .fi-ta-row.fi-striped [data-sticky-applied].fi-ta-cell,
-.dark .fi-ta-row:hover [data-sticky-applied].fi-ta-cell,
-.dark .fi-ta-row.fi-selected [data-sticky-applied].fi-ta-cell {
-    background-color: color-mix(in srgb, white 5%, rgb(17 24 39)) !important;
+    background-color: var(--resized-sticky-cell-bg-emphasis) !important;
 }
 
 [data-sticky-applied="left"],
