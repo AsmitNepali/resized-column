@@ -170,6 +170,127 @@ function refreshResizeHandles(table) {
     });
 }
 
+const boundResizeScrollWrappers = new WeakSet();
+
+function getTableScrollWrapper(table) {
+    return (
+        table.closest('.fi-ta-content-ctn.fi-fixed-positioning-context')
+        || table.closest('.fi-ta-content-ctn')
+        || table.closest('.fi-ta-table-wrapper')
+        || table.closest('[data-sticky-wrapper]')
+    );
+}
+
+function getLastLeftStickyHeader(table) {
+    const row = table.querySelector('thead tr');
+
+    if (!row) {
+        return null;
+    }
+
+    const stickyHeaders = Array.from(row.querySelectorAll('th[data-column-name]')).filter((header) => {
+        return header.getAttribute('data-sticky-applied') === 'left'
+            || header.getAttribute('data-sticky') === 'left';
+    });
+
+    return stickyHeaders[stickyHeaders.length - 1] ?? null;
+}
+
+function isHandleWithinHeader(header, handle) {
+    const headerRect = header.getBoundingClientRect();
+    const handleRect = handle.getBoundingClientRect();
+    const inset = 1;
+
+    return handleRect.right <= headerRect.right + inset
+        && handleRect.left >= headerRect.left - inset
+        && handleRect.top >= headerRect.top - inset
+        && handleRect.bottom <= headerRect.bottom + inset;
+}
+
+function shouldShowResizeHandle(header, handle, wrapper, table) {
+    if (handle.classList.contains('active')) {
+        return true;
+    }
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    const isScrolled = wrapper.scrollLeft > 1;
+    const isPinned = header.hasAttribute('data-sticky-applied') || header.hasAttribute('data-sticky');
+
+    if (headerRect.right <= wrapperRect.left + 1 || headerRect.left >= wrapperRect.right - 1) {
+        return false;
+    }
+
+    if (isScrolled && !isPinned) {
+        const lastSticky = getLastLeftStickyHeader(table);
+
+        if (lastSticky) {
+            const stickyZoneRight = lastSticky.getBoundingClientRect().right;
+
+            if (headerRect.right <= stickyZoneRight + 2) {
+                return false;
+            }
+        }
+    }
+
+    return isHandleWithinHeader(header, handle);
+}
+
+function updateResizeHandleVisibility(wrapper, table) {
+    const isScrolled = wrapper.scrollLeft > 1;
+    table.classList.toggle('resized-column-is-scrolled', isScrolled);
+
+    table.querySelectorAll('thead th[data-column-name] .column-resize-handle-bar').forEach((handle) => {
+        const header = handle.closest('th[data-column-name]');
+
+        if (!header) {
+            return;
+        }
+
+        handle.classList.toggle('is-visible', shouldShowResizeHandle(header, handle, wrapper, table));
+    });
+}
+
+function updateResizeHandleVisibilityForWrapper(wrapper) {
+    wrapper.querySelectorAll('.fi-ta-table, table.fi-ta-table').forEach((table) => {
+        updateResizeHandleVisibility(wrapper, table);
+    });
+}
+
+function bindResizeScroll(table) {
+    const wrapper = getTableScrollWrapper(table);
+
+    if (!wrapper || boundResizeScrollWrappers.has(wrapper)) {
+        return;
+    }
+
+    boundResizeScrollWrappers.add(wrapper);
+
+    const update = () => updateResizeHandleVisibilityForWrapper(wrapper);
+
+    wrapper.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+}
+
+function bindResizeHeaderHover(table) {
+    const row = table.querySelector('thead tr');
+
+    if (!row || row._resizeHoverBound) {
+        return;
+    }
+
+    row._resizeHoverBound = true;
+
+    row.addEventListener('mouseenter', () => {
+        const wrapper = getTableScrollWrapper(table);
+
+        if (wrapper) {
+            updateResizeHandleVisibility(wrapper, table);
+        }
+    }, true);
+}
+
 function refreshTableChrome(table) {
     if (!table) {
         return;
@@ -178,6 +299,14 @@ function refreshTableChrome(table) {
     refreshResizeHandles(table);
     refreshStickyPins(table);
     bindResizeRows(table);
+    bindResizeScroll(table);
+    bindResizeHeaderHover(table);
+
+    const wrapper = getTableScrollWrapper(table);
+
+    if (wrapper) {
+        updateResizeHandleVisibility(wrapper, table);
+    }
 }
 
 const RESIZE_EDGE_ZONE_PX = 20;
@@ -351,6 +480,13 @@ function beginColumnResize(header, event, handleBar = null) {
         document.removeEventListener('pointercancel', onEnd);
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onEnd);
+
+        const wrapper = getTableScrollWrapper(table);
+
+        if (wrapper) {
+            updateResizeHandleVisibility(wrapper, table);
+        }
+
         scheduleStickyRefresh();
     };
 
@@ -410,6 +546,22 @@ document.addEventListener('resized-column:sticky-refreshed', (event) => {
     }
 
     refreshTableChrome(table);
+
+    const wrapper = getTableScrollWrapper(table);
+
+    if (wrapper) {
+        updateResizeHandleVisibility(wrapper, table);
+    }
+});
+
+document.addEventListener('resized-column:table-scrolled', (event) => {
+    const table = event.target?.closest?.('.fi-ta-table, table.fi-ta-table')
+        ?? (event.target?.matches?.('.fi-ta-table, table.fi-ta-table') ? event.target : null);
+    const wrapper = event.detail?.wrapper ?? (table ? getTableScrollWrapper(table) : null);
+
+    if (table && wrapper) {
+        updateResizeHandleVisibility(wrapper, table);
+    }
 });
 
 document.addEventListener('alpine:init', () => {

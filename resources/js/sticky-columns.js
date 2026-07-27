@@ -276,6 +276,10 @@ function updateTableScrollShadow(wrapper, table) {
 function updateWrapperScrollShadows(wrapper) {
     wrapper.querySelectorAll('.fi-ta-table, table.fi-ta-table').forEach((table) => {
         updateTableScrollShadow(wrapper, table);
+        table.dispatchEvent(new CustomEvent('resized-column:table-scrolled', {
+            bubbles: true,
+            detail: { wrapper },
+        }));
     });
 }
 

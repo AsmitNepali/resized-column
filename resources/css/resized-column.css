@@ -3,18 +3,19 @@
    never collides with the resize handle bar sitting at the right edge. */
 .group\/column-resize {
     padding-inline-end: 1rem !important;
+    overflow: hidden;
 }
 
 .column-resize-handle-bar {
     position: absolute;
     top: 0;
     bottom: 0;
-    right: -0.25rem;
-    width: 0.875rem;
+    right: 0;
+    width: 0.625rem;
     cursor: col-resize;
     user-select: none;
     touch-action: none;
-    z-index: 30;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,14 +72,24 @@
 }
 
 .fi-ta-header-cell .column-resize-handle-bar {
-    z-index: 30;
+    z-index: 2;
 }
 
-/* Keep the column being resized above adjacent sticky headers. */
-thead th.fi-ta-header-cell.resized-column-is-resizing,
-thead th.fi-ta-header-cell.group\/column-resize:has(.column-resize-handle-bar:hover),
-thead th.fi-ta-header-cell.group\/column-resize:has(.column-resize-handle-bar.active) {
+/* Only elevate the column actively being resized. */
+thead th.fi-ta-header-cell.resized-column-is-resizing {
     z-index: 100 !important;
+}
+
+/* Visibility while scrolled is toggled via JS (.is-visible) — table cells ignore overflow. */
+.fi-ta-table.resized-column-is-scrolled .column-resize-handle-bar:not(.active):not(.is-visible) {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.fi-ta-table.resized-column-is-scrolled .column-resize-handle-bar.is-visible,
+.fi-ta-table.resized-column-is-scrolled .column-resize-handle-bar.active {
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Keep sort label from covering the resize gutter inside the same header. */
