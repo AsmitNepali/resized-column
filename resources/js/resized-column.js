@@ -320,6 +320,18 @@ function getResizableHeaders(row) {
     });
 }
 
+function isOnReorderGrip(header, clientX) {
+    const dragHandle = header.querySelector('.resized-col-drag');
+
+    if (!dragHandle) {
+        return false;
+    }
+
+    const { left, right } = dragHandle.getBoundingClientRect();
+
+    return clientX >= left - 4 && clientX <= right + 4;
+}
+
 function findHeaderForResizeAtX(row, clientX) {
     const headers = getResizableHeaders(row);
 
@@ -330,7 +342,11 @@ function findHeaderForResizeAtX(row, clientX) {
         // When a sticky header is covered by the next column, clicks on that
         // neighbour's left gutter should resize the preceding column.
         if (index > 0 && clientX >= left && clientX <= left + RESIZE_EDGE_ZONE_PX) {
-            return headers[index - 1];
+            if (!isOnReorderGrip(header, clientX)) {
+                return headers[index - 1];
+            }
+
+            continue;
         }
 
         if (clientX >= right - RESIZE_EDGE_ZONE_PX && clientX <= right + 8) {
@@ -342,6 +358,10 @@ function findHeaderForResizeAtX(row, clientX) {
 }
 
 function resolveResizeTarget(event) {
+    if (event.target.closest('.resized-col-drag, .resized-sticky-pin')) {
+        return null;
+    }
+
     const row = event.target.closest('thead tr');
 
     if (!row) {
@@ -502,6 +522,10 @@ function beginColumnResize(header, event, handleBar = null) {
 
 function handleResizePointerDown(event) {
     if (event.button !== 0) {
+        return;
+    }
+
+    if (event.target.closest('.resized-col-drag, .resized-sticky-pin')) {
         return;
     }
 
