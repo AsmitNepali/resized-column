@@ -1,46 +1,36 @@
-# Resizable Columns
+# asmit/resized-column
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
-[![Total Downloads](https://img.shields.io/packagist/dt/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
-[![PHP Version](https://img.shields.io/packagist/php-v/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
-[![License](https://img.shields.io/packagist/l/asmit/resized-column.svg?style=flat-square)](https://packagist.org/packages/asmit/resized-column)
-[![GitHub Stars](https://img.shields.io/github/stars/AsmitNepali/resized-column.svg?style=flat-square)](https://github.com/AsmitNepali/resized-column/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/AsmitNepali/resized-column.svg?style=flat-square)](https://github.com/AsmitNepali/resized-column/network/members)
+<img src="images/cover.jpg" alt="Resized Column" width="800">
 
-The **Resizable Columns** plugin allows you to resize table columns in Filament with persistent width settings. This package provides a seamless way to customize table layouts by letting users adjust column widths according to their preferences.
+Resizable, reorderable, and pinnable table columns for Filament. Users drag column edges to resize, drag headers to reorder, and pin columns to the left — every choice persisted per user in the session, the database, or both.
 
-![Resized Column](https://raw.githubusercontent.com/AsmitNepali/resized-column/refs/heads/main/images/cover.jpg)
+[![Latest Version](https://img.shields.io/packagist/v/asmit/resized-column.svg?style=for-the-badge)](https://packagist.org/packages/asmit/resized-column)
+[![Total Downloads](https://img.shields.io/packagist/dt/asmit/resized-column.svg?style=for-the-badge)](https://packagist.org/packages/asmit/resized-column)
+[![Filament 3+](https://img.shields.io/badge/filament-3%2B-f59e0b.svg?style=for-the-badge)](https://filamentphp.com)
+[![License](https://img.shields.io/packagist/l/asmit/resized-column.svg?style=for-the-badge)](LICENSE.txt)
 
 ## Features
 
-| Feature | API |
-|---------|-----|
-| Drag-to-resize columns | `HasResizableColumn` trait |
-| Drag-to-reorder columns | `->dragReorderableColumns()` |
-| Dev-declared pinned columns | `TextColumn::make('name')->sticky()` |
-| User pin/unpin panel (draft + Apply) | `->stickableColumns()` |
-| Custom Pin columns toolbar button | `->stickyManagerTriggerAction(fn (Action $action) => ...)` |
-| Session persistence (default) | `ResizedColumnPlugin::make()` |
-| Database persistence | `->preserveOnDB()` or `->preserveColumnWidthsInDatabase()` |
-| Per-table session control | `->preserveColumnWidthsInSession()` |
-| Standalone Livewire (no panel) | `HasResizableColumn` + `ResizedColumnPlugin::standalone()` |
+- **Drag-to-resize** — grab any column edge; widths persist per user
+- **Drag-to-reorder** — `->dragReorderableColumns()` puts a grip on each header
+- **Pinned columns** — `->sticky()` for developer defaults, `->stickableColumns()` for a user-facing "Pin columns" panel with draft + Apply
+- **Persistence** — session by default, database opt-in; widths, order, and pins share one settings row per user
+- **Works without a panel** — the same trait drives tables in plain Livewire components
+- **Filament-native styling** — pinned cells match Filament's own table surfaces in light and dark, and stay opaque while scrolling
+- **Customisable trigger** — restyle the toolbar button via `->stickyManagerTriggerAction()`
 
-- Widths, order, and pinned columns persist **per user** in one settings row (session and/or database).
-- Works inside **Filament panels** and in **standalone Livewire components**.
-- Pinned columns use opaque backgrounds; resize works on sticky headers and body cells.
+## Requirements
 
-Full documentation lives in the `docs/` Nuxt site — start at **Features overview** (`/features/overview`).
+- Filament 3, 4, or 5
 
 ## Installation
-You can install the package via composer:
 
 ```bash
 composer require asmit/resized-column
+php artisan filament:assets
 ```
 
-## Registering the Plugin
-
-Add the plugin to your Filament panel configuration in `app/Providers/Filament/AdminPanelProvider.php`:
+Register the plugin in your panel provider:
 
 ```php
 use Asmit\ResizedColumn\ResizedColumnPlugin;
@@ -48,30 +38,24 @@ use Asmit\ResizedColumn\ResizedColumnPlugin;
 public function panel(Panel $panel): Panel
 {
     return $panel
-        // ... other configuration
         ->plugins([
-            // ... other plugins
             ResizedColumnPlugin::make()
-                ->preserveOnDB() // Enable database storage (optional)
+                ->preserveOnDB(), // optional — database persistence
         ]);
 }
 ```
-## Publishing filament assets
-```bash
-php artisan filament:assets
-```
 
-## Publishing Migrations
+Database persistence also needs the settings table:
+
 ```bash
-# Publish migrations
 php artisan vendor:publish --provider="Asmit\ResizedColumn\ResizedColumnServiceProvider" --tag=resized-column-migrations
-
-# Run migrations
 php artisan migrate
 ```
 
 ## Usage
-To use the Resized Column functionality, simply include the `HasResizableColumn` trait in your Filament List Page or your custom page class. This will automatically enable the resizable column feature for all tables in that resource.
+
+Add the trait to any list page or Livewire component that renders a table:
+
 ```php
 use Asmit\ResizedColumn\HasResizableColumn;
 
@@ -80,41 +64,10 @@ class ListUsers extends ListRecords
     use HasResizableColumn;
 
     protected static string $resource = UserResource::class;
-    
-    // Your existing table definition...
 }
 ```
 
-## Drag-to-Reorder Columns
-
-Let users drag columns into a new order. Chain `->dragReorderableColumns()` on the table (opt-in per table). A grip handle appears on each column header; drag it to reorder. The order is persisted per user and reapplied on load.
-
-```php
-public function table(Table $table): Table
-{
-    return $table
-        ->columns([
-            TextColumn::make('name'),
-            TextColumn::make('email'),
-        ])
-        ->dragReorderableColumns();
-}
-```
-
-> Sticky columns are excluded from dragging, and a column cannot be dropped before a sticky one.
-> Reorder currently supports flat column tables (no column groups).
-
-## Sticky (Pinned) Columns
-
-Pin columns so they stay visible while the table scrolls horizontally.
-
-**Dev-declared default** — mark a column sticky with `->sticky()`:
-
-```php
-TextColumn::make('name')->sticky();
-```
-
-**User-controlled pinning** — enable `->stickableColumns()` on the table to let users pin/unpin columns themselves via a **"Pin columns" dropdown** in the toolbar (next to the column-manager icon). Changes are drafted until you click **Apply** (Select all / Deselect all included). Closing the panel without Apply keeps the draft in memory for that page session. Any `->sticky()` calls seed the initial selection; once a user changes it, their choice is remembered.
+Opt into reordering and pinning per table:
 
 ```php
 public function table(Table $table): Table
@@ -130,212 +83,28 @@ public function table(Table $table): Table
 }
 ```
 
-The user's pinned selection is persisted per user (session + database) alongside widths and order — no extra migration. Sticky is left-pin only in the current version.
-
-Customize the toolbar trigger (same idea as Filament's `columnManagerTriggerAction()`):
-
-```php
-use Filament\Actions\Action;
-
-public function table(Table $table): Table
-{
-    return $table
-        ->columns([...])
-        ->stickableColumns()
-        ->stickyManagerTriggerAction(fn (Action $action) => $action
-            ->label('Pinned columns')
-            ->tooltip('Choose pinned columns'));
-}
-```
-
-## Storage Configuration
-
-The package provides two storage mechanisms:
-
-1. **Session Storage** (Enabled by default)
-   - Stores column widths in the user's session
-   - No database required
-   - Storage is browser/device specific
-
-2. **Database Storage** (Optional)
-   - Stores column widths in the database
-   - Requires migration to create the `table_settings` table
-   - Works across browsers/devices for the same user
-
-You can enable or disable database storage in your panel configuration:
-
-```php
-ResizedColumnPlugin::make()
-    ->preserveOnDB(true) // Enable database storage
-```
-
-## Configuration Options
-
-You can override any of the following methods in your class to customize behavior:
-
-| Method | Description |
-|--------|-------------|
-| `persistColumnWidthsToDatabase()` | Customize how column widths are saved to database |
-| `persistColumnWidthsToSession()` | Customize how column widths are saved to session |
-| `loadColumnWidthsFromDatabase()` | Customize how column widths are loaded from database |
-| `loadColumnWidthsFromSession()` | Customize how column widths are loaded from session |
-| `getUserId()` | Customize how user identification is handled |
-
-## Example: Custom Database Storage
-
-```php
-use Asmit\ResizedColumn\HasResizableColumn;
-
-class ListUsers extends ListRecords
-{
-    use HasResizableColumn;
-    
-    protected function persistColumnWidthsToDatabase(): void
-    {
-        // Your custom database save logic here
-        YourCustomModel::updateOrCreate(
-            [
-                'user_id' => $this->getUserId(),
-                'resource' => $this->getResourceModelFullPath(), // e.g., 'App\Models\User'
-            ],
-            ['settings' => $this->columnWidths]
-        );
-    }
-}
-```
-
-## Using Outside the Filament Panel
-
-Filament tables can be used in any Livewire component without a panel. This package fully supports that use case. Add the `HasResizableColumn` trait to your Livewire component just as you would inside a panel.
-
-```php
-use Asmit\ResizedColumn\HasResizableColumn;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-
-class UsersTable extends Component implements HasForms, HasTable
-{
-    use InteractsWithForms;
-    use InteractsWithTable;
-    use HasResizableColumn;
-
-    public function table(Table $table): Table
-    {
-        return $table
-            ->query(User::query())
-            ->columns([
-                TextColumn::make('name'),
-                TextColumn::make('email'),
-            ]);
-    }
-
-    public function render(): View
-    {
-        return view('livewire.users-table');
-    }
-}
-```
-
-### Enabling Database Storage Outside the Panel
-
-Since there is no `AdminPanelProvider` to register the plugin, the package provides two alternative ways to enable database storage.
-
----
-
-#### Option A — App-wide via `AppServiceProvider` (recommended for global config)
-
-Call `ResizedColumnPlugin::standalone()` once in `AppServiceProvider::boot()`. This stores a shared config instance for the entire request that all `HasResizableColumn` components will pick up automatically.
-
-```php
-// app/Providers/AppServiceProvider.php
-use Asmit\ResizedColumn\ResizedColumnPlugin;
-
-public function boot(): void
-{
-    ResizedColumnPlugin::standalone()
-        ->preserveOnDB();
-
-    // Optionally disable session storage app-wide:
-    // ResizedColumnPlugin::standalone()->preserveOnDB()->preserveOnSession(false);
-}
-```
-
----
-
-#### Option B — Per table via Table macro (recommended for granular control)
-
-Chain `->preserveColumnWidthsInDatabase()` at the end of your `table()` method. This only affects that specific table and overrides any global config.
-
-> ⚠️ **Always call this as the last method in the chain**, after `->columns()`, `->filters()`, `->actions()`, and all other table configuration. This ensures the Livewire component reference is fully resolved when the macro runs.
-
-```php
-public function table(Table $table): Table
-{
-    return $table
-        ->query(User::query())
-        ->columns([
-            TextColumn::make('name'),
-            TextColumn::make('email'),
-        ])
-        ->filters([...])
-        ->actions([...])
-        ->preserveColumnWidthsInDatabase();   // ← always last
-}
-```
-
-You can combine both macros to fully control storage per table:
-
-```php
-->preserveColumnWidthsInDatabase()      // save to DB
-->preserveColumnWidthsInSession(false)  // disable session for this table
-```
-
----
-
-### Configuration Priority
-
-When the package decides whether to save column widths to the database, it checks configuration in the following order. **The first match wins.**
-
-| Priority | Method | Scope |
-|----------|--------|-------|
-| **1 — Highest** | `->preserveColumnWidthsInDatabase()` table macro | Single table only |
-| **2** | `ResizedColumnPlugin::standalone()` in `AppServiceProvider` | All components, no panel required |
-| **3 — Lowest** | `ResizedColumnPlugin::make()` in panel provider | Inside a Filament panel |
-
-This means a table macro will always win over the global standalone config, which will always win over the panel plugin config.
-
----
-
-## Troubleshooting
-
-### CSS Styles Not Loading
-
-If the resize handles are not displaying correctly:
-
-1. Make sure you have published the Filament assets:
-   ```bash
-   php artisan filament:assets
-   ```
-
-2. Clear your browser cache or try a hard refresh (Ctrl+F5)
+**[View Complete Documentation →](https://asmitnepali.github.io/resized-column/)**
 
 ## Credits
+
 - [Asmit Nepal][link-asmit]
 - [Kishan Sunar][link-kishan]
 
-### Security
-
-If you discover a security vulnerability within this package, please send an e-mail to asmitnepali99@gmail.com. All security vulnerabilities will be promptly addressed.
-
 ## Contributing
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-### 📄 License
-The MIT License (MIT). Please see [License File](LICENSE.txt) for more information.
+Contributions are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+
+## Security
+
+If you discover a security issue, please e-mail asmitnepali99@gmail.com instead of opening a public issue. All reports are addressed promptly.
+
+## Changelog
+
+Please see [Releases](https://github.com/AsmitNepali/resized-column/releases) for recent changes.
+
+## License
+
+MIT License. See [LICENSE.txt](LICENSE.txt) for details.
 
 [link-asmit]: https://github.com/AsmitNepali
 [link-kishan]: https://github.com/Kishan-Sunar
