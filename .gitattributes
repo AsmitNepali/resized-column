@@ -4,4 +4,5 @@
 /.gitignore export-ignore
 /build export-ignore
 /images export-ignore
+/docs export-ignore
 /CONTRIBUTING.md export-ignore
