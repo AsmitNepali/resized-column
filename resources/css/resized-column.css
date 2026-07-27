@@ -311,6 +311,19 @@ thead [data-sticky-applied] {
     background-color: rgb(39 39 42);
 }
 
+.resized-sticky-panel-item--locked {
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+
+.resized-sticky-panel-item--locked:hover {
+    background-color: transparent;
+}
+
+.dark .resized-sticky-panel-item--locked:hover {
+    background-color: transparent;
+}
+
 .resized-sticky-panel-empty {
     padding: 0.5rem;
     font-size: 0.875rem;

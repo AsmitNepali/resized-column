@@ -77,6 +77,10 @@ trait LoadResizedColumn
             $stickyHeader['data-stickable'] = 'true';
         }
 
+        if (StickyColumnRegistry::side($column) !== null) {
+            $stickyHeader['data-sticky-locked'] = 'true';
+        }
+
         $column->extraHeaderAttributes([
             'x-data' => "resizedColumn(`{$columnName}`, `{$columnId}`, {$reorderable})",
             'data-column-name' => $columnName,
@@ -116,6 +120,43 @@ trait LoadResizedColumn
         if ($this->stickyColumns === []) {
             $this->stickyColumns = $defaults;
         }
+
+        $this->stickyColumns = $this->mergeDeveloperStickyColumns($this->stickyColumns);
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function getDeveloperStickyColumnNames(): array
+    {
+        $names = [];
+
+        foreach ($this->getTable()->getColumns() as $name => $column) {
+            if (StickyColumnRegistry::side($column) !== null) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @param  list<string>  $columnNames
+     * @return list<string>
+     */
+    protected function mergeDeveloperStickyColumns(array $columnNames): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->getDeveloperStickyColumnNames(),
+            $columnNames,
+        )));
+    }
+
+    protected function isDeveloperStickyColumn(string $columnName): bool
+    {
+        $column = $this->getTable()->getColumns()[$columnName] ?? null;
+
+        return $column !== null && StickyColumnRegistry::side($column) !== null;
     }
 
     /**
@@ -128,6 +169,10 @@ trait LoadResizedColumn
         }
 
         if (in_array($columnName, $this->stickyColumns, true)) {
+            if ($this->isDeveloperStickyColumn($columnName)) {
+                return;
+            }
+
             $this->stickyColumns = array_values(array_diff($this->stickyColumns, [$columnName]));
         } else {
             $this->stickyColumns[] = $columnName;
@@ -162,10 +207,10 @@ trait LoadResizedColumn
 
         $allowed = array_keys($this->getTable()->getColumns());
 
-        $this->stickyColumns = array_values(array_unique(array_filter(
+        $this->stickyColumns = $this->mergeDeveloperStickyColumns(array_values(array_unique(array_filter(
             $columnNames,
             fn (mixed $name): bool => is_string($name) && in_array($name, $allowed, true),
-        )));
+        ))));
 
         $this->stickyPersisted = true;
 
@@ -440,7 +485,7 @@ trait LoadResizedColumn
         $this->columnOrder = $blob[self::ORDER_KEY] ?? [];
 
         if (array_key_exists(self::STICKY_KEY, $blob)) {
-            $this->stickyColumns = $blob[self::STICKY_KEY];
+            $this->stickyColumns = $this->mergeDeveloperStickyColumns($blob[self::STICKY_KEY]);
             $this->stickyPersisted = true;
         }
 

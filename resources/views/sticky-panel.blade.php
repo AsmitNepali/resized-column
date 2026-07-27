@@ -20,9 +20,13 @@
         </div>
 
         <template x-for="col in columns" :key="col.name">
-            <label class="resized-sticky-panel-item">
+            <label
+                class="resized-sticky-panel-item"
+                x-bind:class="{ 'resized-sticky-panel-item--locked': col.locked }"
+            >
                 <x-filament::input.checkbox
                     x-bind:checked="col.pinned"
+                    x-bind:disabled="col.locked"
                     x-on:change="toggleDraft(col)"
                 />
 

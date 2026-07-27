@@ -384,6 +384,7 @@ document.addEventListener('alpine:init', () => {
                 name: th.getAttribute('data-column-name'),
                 label: this.labelFor(th),
                 pinned: th.hasAttribute('data-sticky'),
+                locked: th.hasAttribute('data-sticky-locked'),
             }));
             this.draftInitialized = true;
         },
@@ -419,6 +420,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         toggleDraft(col) {
+            if (col.locked) {
+                col.pinned = true;
+
+                return;
+            }
+
             col.pinned = !col.pinned;
         },
 
@@ -430,7 +437,9 @@ document.addEventListener('alpine:init', () => {
 
         deselectAll() {
             this.columns.forEach((col) => {
-                col.pinned = false;
+                if (!col.locked) {
+                    col.pinned = false;
+                }
             });
         },
 
@@ -439,7 +448,9 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const names = this.columns.filter((col) => col.pinned).map((col) => col.name);
+            const names = this.columns
+                .filter((col) => col.pinned || col.locked)
+                .map((col) => col.name);
             await this.$wire.setStickyColumns(names);
             this.open = false;
             this.refresh();
