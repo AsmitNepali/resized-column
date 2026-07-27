@@ -3,7 +3,8 @@ import type { ContentNavigationItem } from '@nuxt/content'
 import { findPageHeadline } from '@nuxt/content/utils'
 
 definePageMeta({
-  layout: 'docs'
+  layout: 'docs',
+  colorMode: 'dark'
 })
 
 const route = useRoute()
