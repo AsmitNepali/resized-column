@@ -1,4 +1,108 @@
 import Sortable from 'sortablejs';
+import { scheduleStickyRefresh } from './sticky-columns.js';
+
+const wireMorphHooks = new Set();
+const sortableInstances = new WeakMap();
+
+function slugifyColumnName(name) {
+    return name.replace(/_/g, '-').replace(/\s+/g, '-');
+}
+
+function columnIdFromHeader(header) {
+    const xData = header.getAttribute('x-data') ?? '';
+    const match = xData.match(/resizedColumn\(\s*`[^`]*`\s*,\s*`([^`]+)`/);
+
+    if (match?.[1]) {
+        return match[1];
+    }
+
+    return slugifyColumnName(header.getAttribute('data-column-name') ?? '');
+}
+
+function resolveTable(wireId, tableSelector) {
+    return document.querySelector(`[wire\\:id="${wireId}"] ${tableSelector}`);
+}
+
+function escapeClass(className) {
+    if (!className || typeof className !== 'string') {
+        return '';
+    }
+
+    return className.replace(/\./g, '\\.');
+}
+
+function destroySortableForRow(row) {
+    const existing = sortableInstances.get(row);
+
+    if (!existing) {
+        return;
+    }
+
+    existing.destroy();
+    sortableInstances.delete(row);
+}
+
+function createSortableForRow(row, onOrderChange) {
+    destroySortableForRow(row);
+
+    const sortable = Sortable.create(row, {
+        handle: '.resized-col-drag',
+        animation: 150,
+        draggable: '[data-column-name]',
+        filter: '[data-sticky]',
+        onMove(evt) {
+            if (evt.related?.matches('[data-sticky]') && evt.willInsertAfter === false) {
+                return false;
+            }
+        },
+        onEnd: () => {
+            const order = Array.from(row.querySelectorAll('[data-column-name]'))
+                .map((el) => el.getAttribute('data-column-name'));
+
+            Promise.resolve(onOrderChange(order)).finally(() => {
+                const table = row.closest('.fi-ta-table');
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        refreshDragHandles(table);
+                        scheduleStickyRefresh();
+                    });
+                });
+            });
+        },
+    });
+
+    sortableInstances.set(row, sortable);
+}
+
+function ensureDragHandleForHeader(header) {
+    if (!header || header.hasAttribute('data-sticky')) {
+        return;
+    }
+
+    header.classList.add('resized-reorderable-col');
+
+    if (header.querySelector('.resized-col-drag')) {
+        return;
+    }
+
+    const grip = document.createElement('button');
+    grip.type = 'button';
+    grip.classList.add('resized-col-drag');
+    grip.setAttribute('title', 'Drag to reorder');
+    grip.innerHTML = '&#8942;&#8942;';
+    header.prepend(grip);
+}
+
+function refreshDragHandles(table) {
+    if (!table) {
+        return;
+    }
+
+    table.querySelectorAll('thead th[data-column-name]:not([data-sticky])').forEach((header) => {
+        ensureDragHandleForHeader(header);
+    });
+}
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('resizedColumn', function (columnName, columnId, reorderable = false) {
@@ -17,16 +121,81 @@ document.addEventListener('alpine:init', () => {
             init() {
                 this.column = this.$el;
                 this.table = this.$el.closest(this.tableSelector);
-                this.tableWrapper = this.$el.closest(this.tableWrapperContentSelector);
+                this.tableWrapper = this.$el.closest(this.tableWrapperContentSelector)
+                    ?? this.$el.closest('.fi-ta-ctn');
 
-                if (!this.column || !this.table || !this.tableWrapper) return null;
+                if (!this.column || !this.table) {
+                    return;
+                }
 
                 this.initializeColumnLayout();
                 this.setupReorder();
-                this.onLivewireUpdate();
+                this.registerTableHooks();
 
-                this.positionStickyColumns();
-                window.addEventListener('column-resized', () => this.positionStickyColumns());
+                this.$nextTick(() => {
+                    scheduleStickyRefresh();
+                });
+            },
+
+            isTableCoordinator() {
+                const row = this.column.closest('thead tr');
+
+                return row?.querySelector('[data-column-name]') === this.column;
+            },
+
+            registerTableHooks() {
+                if (!this.isTableCoordinator()) {
+                    return;
+                }
+
+                const root = this.$el.closest('[wire\\:id]');
+                const wireId = root?.getAttribute('wire:id');
+
+                if (!wireId || wireMorphHooks.has(wireId)) {
+                    return;
+                }
+
+                wireMorphHooks.add(wireId);
+
+                const tableSelector = this.tableSelector;
+
+                window.Livewire.hook('morph.updated', ({ component }) => {
+                    if (component?.id !== wireId) {
+                        return;
+                    }
+
+                    requestAnimationFrame(() => {
+                        const table = resolveTable(wireId, tableSelector);
+
+                        if (!table) {
+                            return;
+                        }
+
+                        if (reorderable) {
+                            const row = table.querySelector('thead tr');
+
+                            if (row) {
+                                refreshDragHandles(table);
+
+                                createSortableForRow(row, (order) => {
+                                    const livewireComponent = window.Livewire?.find(wireId);
+
+                                    if (livewireComponent && typeof livewireComponent.updateColumnOrder === 'function') {
+                                        return livewireComponent.updateColumnOrder(order);
+                                    }
+                                });
+                            }
+                        }
+
+                        scheduleStickyRefresh();
+                    });
+                });
+
+                this.onColumnResized = () => {
+                    scheduleStickyRefresh();
+                };
+
+                window.addEventListener('column-resized', this.onColumnResized);
             },
 
             initializeColumnLayout() {
@@ -40,69 +209,34 @@ document.addEventListener('alpine:init', () => {
                     this.createHandleBar();
                 }
 
-                if (reorderable && !this.column.hasAttribute('data-sticky')) this.createDragHandle();
-                this.createStickyPin();
-            },
-
-            pinSvg() {
-                return '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9.828.722a.5.5 0 0 1 .707 0l3.943 3.944a.5.5 0 0 1-.219.828l-2.31.66-2.573 2.573 1.06 3.006a.5.5 0 0 1-.117.518l-.707.707a.5.5 0 0 1-.707 0L6.229 9.7l-3.238 3.238a.5.5 0 0 1-.707-.707L5.522 8.99 2.79 6.257a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .518-.117l3.006 1.06 2.573-2.573.66-2.31a.5.5 0 0 1 .174-.281z"/></svg>';
-            },
-
-            createStickyPin() {
-                const pinned = this.column.hasAttribute('data-sticky');
-                const existing = this.column.querySelector('.resized-sticky-pin');
-
-                // Only pinned columns show a small static indicator; toggling
-                // happens in the toolbar "Pin columns" panel.
-                if (!pinned) {
-                    if (existing) existing.remove();
-                    return;
+                if (reorderable && !this.column.hasAttribute('data-sticky')) {
+                    this.createDragHandle();
                 }
-
-                if (existing) return;
-
-                const pin = document.createElement('span');
-                pin.classList.add('resized-sticky-pin');
-                pin.setAttribute('title', 'Pinned column');
-                pin.innerHTML = this.pinSvg();
-
-                const target = this.column.querySelector('.fi-ta-header-cell-sort-btn') || this.column;
-                target.prepend(pin);
             },
 
             createDragHandle() {
-                this.column.classList.add('resized-reorderable-col');
-                if (this.column.querySelector('.resized-col-drag')) return;
-                const grip = document.createElement('button');
-                grip.type = 'button';
-                grip.classList.add('resized-col-drag');
-                grip.setAttribute('title', 'Drag to reorder');
-                grip.innerHTML = '&#8942;&#8942;';
-                this.column.prepend(grip);
+                ensureDragHandleForHeader(this.column);
             },
 
             setupReorder() {
-                if (!reorderable) return;
+                if (!reorderable || !this.isTableCoordinator()) {
+                    return;
+                }
 
                 const row = this.column.closest('thead tr');
-                if (!row || row.dataset.resizedSortable === 'true') return;
-                row.dataset.resizedSortable = 'true';
 
-                Sortable.create(row, {
-                    handle: '.resized-col-drag',
-                    animation: 150,
-                    draggable: '[data-column-name]',
-                    filter: '[data-sticky]',
-                    onMove(evt) {
-                        if (evt.related?.matches('[data-sticky]') && evt.willInsertAfter === false) {
-                            return false;
-                        }
-                    },
-                    onEnd: () => {
-                        const order = Array.from(row.querySelectorAll('[data-column-name]'))
-                            .map(el => el.getAttribute('data-column-name'));
-                        this.callLivewireMethod('updateColumnOrder', [order]);
-                    },
+                if (!row) {
+                    return;
+                }
+
+                createSortableForRow(row, (order) => {
+                    const wireRoot = this.$el.closest('[wire\\:id]');
+                    const wireId = wireRoot?.getAttribute('wire:id');
+                    const component = wireId ? window.Livewire?.find(wireId) : null;
+
+                    if (component && typeof component.updateColumnOrder === 'function') {
+                        return component.updateColumnOrder(order);
+                    }
                 });
             },
 
@@ -111,8 +245,7 @@ document.addEventListener('alpine:init', () => {
                 this.handleBar.type = 'button';
                 this.handleBar.classList.add('column-resize-handle-bar');
 
-                const existingHandleBar = this.column.querySelector('.column-resize-handle-bar');
-                if (existingHandleBar) existingHandleBar.remove();
+                this.column.querySelector('.column-resize-handle-bar')?.remove();
 
                 this.column.appendChild(this.handleBar);
                 this.handleBar.addEventListener('mousedown', this.startResize(this.column));
@@ -120,6 +253,10 @@ document.addEventListener('alpine:init', () => {
 
             startResize(column) {
                 return (e) => {
+                    if (!this.tableWrapper) {
+                        return;
+                    }
+
                     e.preventDefault();
                     e.stopPropagation();
                     this.handleBar.classList.add('active');
@@ -131,10 +268,18 @@ document.addEventListener('alpine:init', () => {
 
                     let newColumnWidth = 0;
 
-                    const onMouseMove = (e) => {
-                        if (e.pageX === startX) return;
+                    const onMouseMove = (moveEvent) => {
+                        if (moveEvent.pageX === startX) {
+                            return;
+                        }
 
-                        newColumnWidth = Math.round(Math.min(this.maxColumnWidth, Math.max(this.minColumnWidth, initialColumnWidth + (e.pageX - startX) - 16)));
+                        newColumnWidth = Math.round(Math.min(
+                            this.maxColumnWidth,
+                            Math.max(
+                                this.minColumnWidth,
+                                initialColumnWidth + (moveEvent.pageX - startX) - 16,
+                            ),
+                        ));
 
                         const newTableWidth = initialTableWidth - initialColumnWidth + newColumnWidth;
                         this.table.style.width = `${newTableWidth > initialTableWrapperWidth ? newTableWidth : 'auto'}px`;
@@ -173,10 +318,16 @@ document.addEventListener('alpine:init', () => {
                 this.setColumnWidthAttribute(column, width);
 
                 const bodyCellId = this.tableBodyCellPrefix + columnId;
-                const bodyCells = this.table.querySelectorAll(`.${this.getEscapedSelectorFromClass(bodyCellId)}`);
-                bodyCells.forEach(cell => {
+                const bodyCells = this.table.querySelectorAll(`.${escapeClass(bodyCellId)}`);
+
+                bodyCells.forEach((cell) => {
                     this.setColumnWidthAttribute(cell, width);
-                    cell.style.overflow = 'hidden';
+
+                    if (!cell.classList.contains('resized-sticky')) {
+                        cell.style.overflow = 'hidden';
+                    } else {
+                        cell.style.removeProperty('overflow');
+                    }
                 });
             },
 
@@ -186,71 +337,15 @@ document.addEventListener('alpine:init', () => {
                 column.style.minWidth = `${width}px`;
             },
 
-            getEscapedSelectorFromClass(className) {
-                if (!className || typeof className !== 'string') return '';
-                return className.replace(/\./g, "\\.");
-            },
-
-            positionStickyColumns() {
-                if (!this.table) return;
-
-                const stickyHeaders = Array.from(
-                    this.table.querySelectorAll('thead [data-sticky="left"]')
-                );
-                if (!stickyHeaders.length) return;
-
-                let offset = 0;
-                const stickyCount = stickyHeaders.length;
-
-                stickyHeaders.forEach((header, index) => {
-                    const columnName = header.getAttribute('data-column-name');
-                    // Headers sit above body stickies when scrolling vertically; body
-                    // only needs a low z-index to cover horizontally scrolling cells.
-                    const headerZIndex = 20 + (stickyCount - index);
-                    const bodyZIndex = 1 + (stickyCount - index);
-
-                    this.applyStickyStyle(header, offset, headerZIndex);
-
-                    const bodyId = this.tableBodyCellPrefix
-                        + this.slugifyColumnName(columnName);
-                    this.table
-                        .querySelectorAll(`.${this.getEscapedSelectorFromClass(bodyId)}`)
-                        .forEach((cell) => {
-                            this.applyStickyStyle(cell, offset, bodyZIndex);
-                        });
-
-                    offset += header.offsetWidth;
-                });
-            },
-
-            applyStickyStyle(el, left, zIndex) {
-                el.style.position = 'sticky';
-                el.style.left = `${left}px`;
-                el.style.zIndex = `${zIndex}`;
-            },
-
-            slugifyColumnName(name) {
-                return name.replace(/_/g, '-').replace(/\s+/g, '-');
-            },
-
             debounce(func, wait) {
                 let debounceItem;
+
                 return function executedFunction(...args) {
                     clearTimeout(debounceItem);
-                    const later = () => {
-                        clearTimeout(debounceItem);
+                    debounceItem = setTimeout(() => {
                         func(...args);
-                    };
-                    debounceItem = setTimeout(later, wait);
+                    }, wait);
                 };
-            },
-
-            onLivewireUpdate() {
-                window.Livewire.hook('morph.updated', () => {
-                    this.initializeColumnLayout();
-                    this.setupReorder();
-                    this.positionStickyColumns();
-                });
             },
         };
     });
@@ -262,22 +357,24 @@ document.addEventListener('alpine:init', () => {
 
         toggle() {
             this.open = !this.open;
+
             if (this.open) {
                 this.ensureDraft();
             }
         },
 
         tableRoot() {
-            // Prefer the Livewire component root — it always wraps both the
-            // toolbar (where this panel lives) and the table, so the header
-            // scan is reliable regardless of Filament's inner wrapper classes.
             return this.$el.closest('[wire\\:id]') || this.$el.closest('.fi-ta') || document;
         },
 
         labelFor(th) {
             const btn = th.querySelector('.fi-ta-header-cell-sort-btn');
             let text = (btn && btn.getAttribute('aria-label')) || '';
-            if (!text) text = (th.textContent || '').replace(/[⋮]/g, '').trim();
+
+            if (!text) {
+                text = (th.textContent || '').replace(/[⋮]/g, '').trim();
+            }
+
             return text || th.getAttribute('data-column-name');
         },
 
@@ -299,6 +396,7 @@ document.addEventListener('alpine:init', () => {
 
         livePinned() {
             const root = this.tableRoot();
+
             return Array.from(root.querySelectorAll('thead [data-column-name][data-sticky]'))
                 .map((th) => th.getAttribute('data-column-name'))
                 .filter(Boolean)
@@ -312,9 +410,11 @@ document.addEventListener('alpine:init', () => {
         isDirty() {
             const live = this.livePinned();
             const draft = this.draftPinned();
+
             if (live.length !== draft.length) {
                 return true;
             }
+
             return live.some((name, index) => name !== draft[index]);
         },
 
@@ -343,6 +443,8 @@ document.addEventListener('alpine:init', () => {
             await this.$wire.setStickyColumns(names);
             this.open = false;
             this.refresh();
+            await this.$nextTick();
+            scheduleStickyRefresh();
         },
     }));
 });

@@ -126,34 +126,94 @@
     opacity: 1;
 }
 
-/* Sticky columns need opaque backgrounds so horizontally scrolled cells pass
-   underneath instead of bleeding through. Colours match Filament's table. */
-.fi-ta-header-cell.resized-sticky {
-    background-color: rgb(249 250 251);
+/* Sticky columns need border-collapse: separate for reliable sticky positioning. */
+.fi-ta-content-ctn .fi-ta-table {
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.dark .fi-ta-header-cell.resized-sticky {
-    background-color: color-mix(in srgb, white 5%, rgb(17 24 39));
+/* Horizontal scroll wrappers (adapted from filament-sticky-columns). */
+.fi-ta-table-wrapper,
+.fi-ta-content-ctn.fi-fixed-positioning-context,
+[data-sticky-wrapper] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-td.resized-sticky {
-    background-color: rgb(255 255 255);
+/* JS-applied sticky cells — opaque surfaces via CSS (not inline JS) */
+[data-sticky-applied] {
+    transition: box-shadow 150ms ease;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    overflow: hidden !important;
+    min-width: 0;
+    isolation: isolate;
 }
 
-.fi-ta-row:hover td.resized-sticky,
-.fi-ta-row.fi-striped td.resized-sticky,
-.fi-ta-row.fi-selected td.resized-sticky {
-    background-color: rgb(249 250 251);
+[data-sticky-applied].fi-ta-header-cell {
+    background-color: #eaeef2 !important;
 }
 
-.dark td.resized-sticky {
-    background-color: rgb(17 24 39);
+.dark [data-sticky-applied].fi-ta-header-cell {
+    background-color: color-mix(in srgb, white 5%, rgb(17 24 39)) !important;
 }
 
-.dark .fi-ta-row:hover td.resized-sticky,
-.dark .fi-ta-row.fi-striped td.resized-sticky,
-.dark .fi-ta-row.fi-selected td.resized-sticky {
-    background-color: color-mix(in srgb, white 5%, rgb(17 24 39));
+[data-sticky-applied].fi-ta-cell {
+    background-color: rgb(255 255 255) !important;
+}
+
+.fi-ta-row.fi-striped [data-sticky-applied].fi-ta-cell,
+.fi-ta-row:hover [data-sticky-applied].fi-ta-cell,
+.fi-ta-row.fi-selected [data-sticky-applied].fi-ta-cell {
+    background-color: rgb(249 250 251) !important;
+}
+
+.dark [data-sticky-applied].fi-ta-cell {
+    background-color: rgb(17 24 39) !important;
+}
+
+.dark .fi-ta-row.fi-striped [data-sticky-applied].fi-ta-cell,
+.dark .fi-ta-row:hover [data-sticky-applied].fi-ta-cell,
+.dark .fi-ta-row.fi-selected [data-sticky-applied].fi-ta-cell {
+    background-color: color-mix(in srgb, white 5%, rgb(17 24 39)) !important;
+}
+
+[data-sticky-applied="left"],
+[data-sticky-applied="right"] {
+    box-shadow: none;
+}
+
+/* Inset vertical edge on the last left-pinned column (not clipped by overflow:hidden). */
+[data-sticky-applied="left"].sticky-shadow-active {
+    box-shadow: inset -6px 0 8px -6px var(--sticky-shadow-color, rgba(0, 0, 0, 0.18));
+}
+
+[data-sticky-applied="right"].sticky-shadow-active {
+    box-shadow: inset 6px 0 8px -6px var(--sticky-shadow-color, rgba(0, 0, 0, 0.18));
+}
+
+.dark [data-sticky-applied="left"].sticky-shadow-active,
+.dark [data-sticky-applied="right"].sticky-shadow-active {
+    --sticky-shadow-color: rgba(0, 0, 0, 0.45);
+}
+
+thead [data-sticky-applied] {
+    z-index: 20 !important;
+}
+
+/* Clip overflowing cell text inside sticky cells. */
+.fi-ta-cell.resized-sticky .fi-ta-col,
+.fi-ta-cell.resized-sticky .fi-ta-text,
+.fi-ta-header-cell.resized-sticky .fi-ta-header-cell-sort-btn,
+[data-sticky-applied] .fi-ta-col,
+[data-sticky-applied] .fi-ta-text,
+[data-sticky-applied] .fi-ta-header-cell-sort-btn,
+[data-sticky-applied] .fi-ta-header-cell-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* "Pin columns" toolbar dropdown panel */

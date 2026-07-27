@@ -16,6 +16,8 @@ trait HasResizableColumn
 
         $this->seedStickyDefaults();
 
+        $this->applyStickyColumnOrder();
+
         $this->applyAllColumnAttributes();
     }
 }
