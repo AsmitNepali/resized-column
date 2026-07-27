@@ -12,12 +12,22 @@ Resizable, reorderable, and pinnable table columns for Filament. Users drag colu
 ## Features
 
 - **Drag-to-resize** — grab any column edge; widths persist per user
-- **Drag-to-reorder** — `->dragReorderableColumns()` puts a grip on each header
-- **Pinned columns** — `->sticky()` for developer defaults, `->stickableColumns()` for a user-facing "Pin columns" panel with draft + Apply
+- **Drag-to-reorder** *(beta)* — `->dragReorderableColumns()` puts a grip on each header
+- **Pinned columns** *(beta)* — `->sticky()` for developer defaults, `->stickableColumns()` for a user-facing "Pin columns" panel with draft + Apply
 - **Persistence** — session by default, database opt-in; widths, order, and pins share one settings row per user
 - **Works without a panel** — the same trait drives tables in plain Livewire components
 - **Filament-native styling** — pinned cells match Filament's own table surfaces in light and dark, and stay opaque while scrolling
-- **Customisable trigger** — restyle the toolbar button via `->stickyManagerTriggerAction()`
+- **Customisable trigger** *(beta)* — restyle the toolbar button via `->stickyManagerTriggerAction()`
+
+## Beta features
+
+Column **reordering** and **sticky (pinned) columns** ship in the `4.0.0-beta.*` releases. They work, but the behaviour and API may still change before the stable 4.0 release — pin an exact version if you need stability:
+
+```bash
+composer require asmit/resized-column:4.0.0-beta.3
+```
+
+Column resizing and the storage layer are stable.
 
 ## Requirements
 
