@@ -1,6 +1,6 @@
 # asmit/resized-column
 
-<img src="images/cover.jpg" alt="Resized Column" width="800">
+<img src="images/cover.png" alt="Resized Column" width="800">
 
 Resizable, reorderable, and pinnable table columns for Filament. Users drag column edges to resize, drag headers to reorder, and pin columns to the left — every choice persisted per user in the session, the database, or both.
 
