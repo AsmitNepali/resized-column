@@ -17,10 +17,7 @@ const { header } = useAppConfig()
       class="w-full"
     />
 
-    <template
-      v-if="header?.logo?.dark || header?.logo?.light || header?.title"
-      #title
-    >
+    <template #title>
       <UColorModeImage
         v-if="header?.logo?.dark || header?.logo?.light"
         :light="header?.logo?.light!"
@@ -29,20 +26,14 @@ const { header } = useAppConfig()
         class="h-6 w-auto shrink-0"
       />
 
-      <span v-else-if="header?.title">
+      <AppLogo
+        v-else
+        class="h-6 w-auto shrink-0"
+      />
+
+      <span v-if="header?.title">
         {{ header.title }}
       </span>
-    </template>
-
-    <template
-      v-else
-      #left
-    >
-      <NuxtLink :to="header?.to || '/'">
-        <AppLogo class="w-auto h-6 shrink-0" />
-      </NuxtLink>
-
-      <TemplateMenu />
     </template>
 
     <template #right>
