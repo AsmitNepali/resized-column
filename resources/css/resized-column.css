@@ -135,14 +135,14 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
 }
 
 /*
- * Sticky thead must sit above body cells that use z-index for sticky
- * record-actions (11) and pinned columns (10+). Otherwise vertical scroll
- * paints row content over the sticky header.
+ * Sticky thead must sit above body cells (record-actions z-index 11, pinned
+ * body cells z-index 10+) but below Filament chrome (topbar/sidebar z-30)
+ * so user-menu and nav dropdowns stay on top.
  */
 .sticky-table .fi-ta-table > thead > tr,
 .fi-ta-content-ctn .fi-ta-table > thead > tr {
     position: sticky;
-    z-index: 30 !important;
+    z-index: 20 !important;
 }
 
 /* Opaque header cells so scrolled rows cannot show through the thead.
@@ -164,7 +164,7 @@ thead th.fi-ta-header-cell[data-column-name]:not([data-sticky-applied]) {
 
 thead th.fi-ta-header-cell[data-sticky-applied],
 thead th.fi-ta-header-cell[data-sticky] {
-    z-index: 25 !important;
+    z-index: 18 !important;
     overflow: hidden;
 }
 
@@ -445,18 +445,18 @@ thead [data-sticky-applied],
 }
 
 thead [data-sticky-applied] {
-    z-index: 25 !important;
+    z-index: 18 !important;
 }
 
 /*
  * Filament sticky record-actions column (enableStickyTableActions) must stack
- * above reorder grips (z-index 4–5) and pinned headers (z-index 20) so icons
+ * above reorder grips (z-index 4–5) and pinned headers (z-index 18) so icons
  * from scrolled columns do not paint over the actions header.
- * Body action cells stay at 11; sticky thead (z-index 30) keeps them below
+ * Body action cells stay at 11; sticky thead (z-index 20) keeps them below
  * the header while scrolling vertically.
  */
 thead .fi-ta-actions-header-cell {
-    z-index: 21 !important;
+    z-index: 19 !important;
 }
 
 .fi-ta-cell:has(> .fi-ta-actions) {
