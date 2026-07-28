@@ -1,4 +1,5 @@
 /.gitattributes export-ignore
+/composer.lock export-ignore
 /package.json export-ignore
 /package-lock.json export-ignore
 /.gitignore export-ignore
