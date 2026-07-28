@@ -1,39 +1,36 @@
 /* Resized Column Styles */
 
 :root {
-  --resized-column-handle-color: var(--color-gray-300, #d1d5db);
-  --resized-column-handle-active-color: var(--color-primary-500, #3b82f6);
+    --resized-column-handle-color: var(--color-gray-300, #d1d5db);
+    --resized-column-handle-active-color: var(--color-primary-500, #3b82f6);
+    --resized-column-resize-gutter: 0.25rem;
 }
 
 .dark {
-  --resized-column-handle-color: var(--color-gray-600, #4b5563);
-  --resized-column-handle-active-color: var(--color-primary-400, #60a5fa);
+    --resized-column-handle-color: var(--color-gray-600, #4b5563);
+    --resized-column-handle-active-color: var(--color-primary-400, #60a5fa);
 }
 
 /*
  * gray-300 vanishes on Primo / Filament light headers (#EAEEF2). Nudge
  * toward gray-400 for contrast, but keep the handle light and thin.
  */
-.fi-ta-table > thead > tr > th.fi-ta-header-cell[data-column-name] {
-  --resized-column-handle-color: color-mix(
-    in oklab,
-    var(--color-gray-300, #d1d5db) 72%,
-    var(--color-gray-400, #9ca3af)
-  );
+.fi-ta-table>thead>tr>th.fi-ta-header-cell[data-column-name] {
+    --resized-column-handle-color: color-mix(in oklab,
+            var(--color-gray-300, #d1d5db) 72%,
+            var(--color-gray-400, #9ca3af));
 }
 
-.dark .fi-ta-table > thead > tr > th.fi-ta-header-cell[data-column-name] {
-  --resized-column-handle-color: color-mix(
-    in oklab,
-    var(--color-gray-600, #4b5563) 65%,
-    var(--color-gray-500, #6b7280)
-  );
+.dark .fi-ta-table>thead>tr>th.fi-ta-header-cell[data-column-name] {
+    --resized-column-handle-color: color-mix(in oklab,
+            var(--color-gray-600, #4b5563) 65%,
+            var(--color-gray-500, #6b7280));
 }
 
-/* Reserve a right gutter on every resizable header so the sort icon/label
-   never collides with the resize handle bar sitting at the right edge. */
-.group\/column-resize {
-    padding-inline-end: 1rem !important;
+/* Reserve right-edge space for the resize bar on every resizable header. */
+.group\/column-resize,
+thead th.fi-ta-header-cell[data-column-name] {
+    padding-inline-end: var(--resized-column-resize-gutter) !important;
     overflow: hidden;
 }
 
@@ -139,16 +136,16 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
  * body cells z-index 10+) but below Filament chrome (topbar/sidebar z-30)
  * so user-menu and nav dropdowns stay on top.
  */
-.sticky-table .fi-ta-table > thead > tr,
-.fi-ta-content-ctn .fi-ta-table > thead > tr {
+.sticky-table .fi-ta-table>thead>tr,
+.fi-ta-content-ctn .fi-ta-table>thead>tr {
     position: sticky;
     z-index: 20 !important;
 }
 
 /* Opaque header cells so scrolled rows cannot show through the thead.
    Prefer inherit so host themes (e.g. Primo #EAEEF2) keep their surface. */
-.sticky-table .fi-ta-table > thead > tr > th.fi-ta-header-cell,
-.fi-ta-content-ctn .fi-ta-table > thead > tr > th.fi-ta-header-cell {
+.sticky-table .fi-ta-table>thead>tr>th.fi-ta-header-cell,
+.fi-ta-content-ctn .fi-ta-table>thead>tr>th.fi-ta-header-cell {
     background-color: var(--resized-sticky-header-bg, inherit);
 }
 
@@ -191,10 +188,11 @@ thead th.fi-ta-header-cell[data-sticky] {
     pointer-events: auto;
 }
 
-/* Keep sort label from covering the resize gutter inside the same header. */
-.group\/column-resize .fi-ta-header-cell-sort-btn {
-    width: calc(100% - 1rem);
-    max-width: calc(100% - 1rem);
+/* Keep sort label from overlapping the resize gutter. */
+.group\/column-resize .fi-ta-header-cell-sort-btn,
+thead th.fi-ta-header-cell[data-column-name] .fi-ta-header-cell-sort-btn {
+    width: calc(100% - var(--resized-column-resize-gutter));
+    max-width: calc(100% - var(--resized-column-resize-gutter));
 }
 
 body.resized-column-resizing {
