@@ -27,7 +27,7 @@
     },
     "require-dev": {
         "filament/tables": "^4.0",
-        "orchestra/testbench": "^9.0|^10.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
         "pestphp/pest": "^3.0 || ^4.0",
         "filament/filament": "^4.0"
     },
