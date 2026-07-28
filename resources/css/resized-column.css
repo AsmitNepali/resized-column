@@ -389,6 +389,19 @@ thead [data-sticky-applied] {
     z-index: 20 !important;
 }
 
+/*
+ * Filament sticky record-actions column (enableStickyTableActions) must stack
+ * above reorder grips (z-index 4–5) and pinned headers (z-index 20) so icons
+ * from scrolled columns do not paint over the actions header.
+ */
+thead .fi-ta-actions-header-cell {
+    z-index: 21 !important;
+}
+
+.fi-ta-cell:has(> .fi-ta-actions) {
+    z-index: 11;
+}
+
 /* Clip overflowing cell text inside sticky cells. */
 .fi-ta-cell.resized-sticky .fi-ta-col,
 .fi-ta-cell.resized-sticky .fi-ta-text,
