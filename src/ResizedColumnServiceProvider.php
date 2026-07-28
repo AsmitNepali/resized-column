@@ -28,7 +28,7 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
     {
         FilamentAsset::register([
             ContentHashJs::make('resized-column', __DIR__.'/../resources/dist/js/resized-column.js'),
-            ContentHashCss::make('resized-column', __DIR__.'/../resources/css/resized-column.css'),
+            ContentHashCss::make('resized-column', __DIR__.'/../resources/dist/css/resized-column.css'),
         ], 'asmit/resized-column');
 
         $this->registerTableMacros();

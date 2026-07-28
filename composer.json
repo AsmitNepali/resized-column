@@ -32,7 +32,8 @@
         "filament/filament": "^4.0"
     },
     "scripts": {
-        "test": "pest"
+        "test": "pest",
+        "build-assets": "node bin/build.js"
     },
     "config": {
         "allow-plugins": {

@@ -243,6 +243,8 @@ function updateTableScrollShadow(wrapper, table) {
         if (lastLeftSticky) {
             const columnIndex = Array.from(headerRow.children).indexOf(lastLeftSticky);
 
+            lastLeftSticky.classList.add('sticky-shadow-active');
+
             table.querySelectorAll('tbody tr, tfoot tr').forEach((row) => {
                 const cell = row.children[columnIndex];
 
@@ -261,6 +263,8 @@ function updateTableScrollShadow(wrapper, table) {
 
         if (firstRightSticky) {
             const columnIndex = Array.from(headerRow.children).indexOf(firstRightSticky);
+
+            firstRightSticky.classList.add('sticky-shadow-active');
 
             table.querySelectorAll('tbody tr, tfoot tr').forEach((row) => {
                 const cell = row.children[columnIndex];

@@ -37,8 +37,11 @@ Column resizing and the storage layer are stable.
 
 ```bash
 composer require asmit/resized-column
+npm --prefix vendor/asmit/resized-column run build
 php artisan filament:assets
 ```
+
+When developing the package from source (path repo), run `npm run build` inside the package directory whenever you change `resources/css/` or `resources/js/`, then `php artisan filament:assets` in the host app.
 
 Register the plugin in your panel provider:
 

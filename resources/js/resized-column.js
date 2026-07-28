@@ -265,10 +265,27 @@ function refreshTableChrome(table) {
 }
 
 const RESIZE_EDGE_ZONE_PX = 20;
+const STICKY_PIN_ZONE_PX = 36;
 const boundResizeRows = new WeakSet();
 
 function getResizableHeaders(row) {
     return Array.from(row.querySelectorAll('th[data-column-name]'));
+}
+
+function isStickyHeader(header) {
+    return header.hasAttribute('data-sticky')
+        || header.hasAttribute('data-sticky-applied')
+        || header.classList.contains('resized-sticky');
+}
+
+function isOnStickyPinZone(clientX, header) {
+    if (!isStickyHeader(header)) {
+        return false;
+    }
+
+    const { left } = header.getBoundingClientRect();
+
+    return clientX >= left && clientX <= left + STICKY_PIN_ZONE_PX;
 }
 
 function isOnReorderGrip(header, clientX) {
@@ -293,7 +310,7 @@ function findHeaderForResizeAtX(row, clientX) {
         // When a sticky header is covered by the next column, clicks on that
         // neighbour's left gutter should resize the preceding column.
         if (index > 0 && clientX >= left && clientX <= left + RESIZE_EDGE_ZONE_PX) {
-            if (!isOnReorderGrip(header, clientX)) {
+            if (!isOnReorderGrip(header, clientX) && !isOnStickyPinZone(clientX, header)) {
                 return headers[index - 1];
             }
 
@@ -301,7 +318,9 @@ function findHeaderForResizeAtX(row, clientX) {
         }
 
         if (clientX >= right - RESIZE_EDGE_ZONE_PX && clientX <= right + 8) {
-            return header;
+            if (!isOnStickyPinZone(clientX, header)) {
+                return header;
+            }
         }
     }
 
@@ -319,8 +338,7 @@ function resolveResizeTarget(event) {
         return null;
     }
 
-    const header = event.target.closest('th[data-column-name]')
-        ?? findHeaderForResizeAtX(row, event.clientX);
+    const header = findHeaderForResizeAtX(row, event.clientX);
 
     if (!header) {
         return null;
