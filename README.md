@@ -24,7 +24,7 @@ Resizable, reorderable, and pinnable table columns for Filament. Users drag colu
 Column **reordering** and **sticky (pinned) columns** ship in the `4.0.0-beta.*` releases. They work, but the behaviour and API may still change before the stable 4.0 release — pin an exact version if you need stability:
 
 ```bash
-composer require asmit/resized-column:4.0.0-beta.3
+composer require asmit/resized-column:4.0.0-beta.5
 ```
 
 Column resizing and the storage layer are stable.
