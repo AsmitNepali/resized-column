@@ -12,6 +12,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     ResizedColumnTableRegistry::reset();
     session()->flush();
+    Asmit\ResizedColumn\ResizedColumnPlugin::getStandaloneConfig()?->preserveOnDB(false);
 
     $this->actingAs((new User)->forceFill(['id' => 7]));
 });
@@ -100,4 +101,23 @@ it('restores a persisted sticky selection on the next mount', function () {
     $component = Livewire::test(StickyTable::class);
 
     expect(array_keys(columnsOf($component->instance())))->toBe(['beta', 'gamma', 'alpha']);
+});
+
+it('persists sticky selection to the database when global preserveOnDB is enabled', function () {
+    Asmit\ResizedColumn\ResizedColumnPlugin::standalone()->preserveOnDB();
+
+    Livewire::test(StickyTable::class)
+        ->call('setStickyColumns', ['gamma']);
+
+    $setting = Asmit\ResizedColumn\Models\TableSetting::query()
+        ->where('user_id', 7)
+        ->where('resource', StickyTable::class)
+        ->sole();
+
+    expect($setting->styles['__sticky'])->toBe(['beta', 'gamma']);
+
+    session()->flush();
+
+    expect(array_keys(columnsOf(Livewire::test(StickyTable::class)->instance())))
+        ->toBe(['beta', 'gamma', 'alpha']);
 });

@@ -514,23 +514,23 @@ trait LoadResizedColumn
 
     public static function isPreservedOnDB(): bool
     {
-        // Priority 1: Per-table config set via ->preserveColumnWidthsInDatabase() macro
-        if (ResizedColumnTableRegistry::has(static::class)) {
-            return ResizedColumnTableRegistry::shouldPreserveOnDb(static::class) ?? false;
+        $perTable = ResizedColumnTableRegistry::shouldPreserveOnDb(static::class);
+
+        if ($perTable !== null) {
+            return $perTable;
         }
 
-        // Priority 2: Global config — standalone (AppServiceProvider) or panel plugin
         return Setup::preserveOnDB();
     }
 
     public static function isPreservedOnSession(): bool
     {
-        // Priority 1: Per-table config set via ->preserveColumnWidthsInSession() macro
-        if (ResizedColumnTableRegistry::has(static::class)) {
-            return ResizedColumnTableRegistry::shouldPreserveOnSession(static::class) ?? true;
+        $perTable = ResizedColumnTableRegistry::shouldPreserveOnSession(static::class);
+
+        if ($perTable !== null) {
+            return $perTable;
         }
 
-        // Priority 2: Global config — standalone (AppServiceProvider) or panel plugin
         return Setup::preserveOnSession();
     }
 }

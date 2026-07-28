@@ -9,7 +9,7 @@ namespace Asmit\ResizedColumn;
  */
 class ResizedColumnTableRegistry
 {
-    /** @var array<class-string, array{preserveOnDb: bool, preserveOnSession: bool, reorderable: bool, stickable: bool, stickyManagerTriggerActionModifier: ?\Closure}> */
+    /** @var array<class-string, array{preserveOnDb: ?bool, preserveOnSession: ?bool, reorderable: bool, stickable: bool, stickyManagerTriggerActionModifier: ?\Closure}> */
     private static array $configs = [];
 
     public static function register(
@@ -22,8 +22,8 @@ class ResizedColumnTableRegistry
         $existing = static::$configs[$componentClass] ?? [];
 
         static::$configs[$componentClass] = [
-            'preserveOnDb' => $preserveOnDb ?? $existing['preserveOnDb'] ?? false,
-            'preserveOnSession' => $preserveOnSession ?? $existing['preserveOnSession'] ?? true,
+            'preserveOnDb' => $preserveOnDb ?? $existing['preserveOnDb'] ?? null,
+            'preserveOnSession' => $preserveOnSession ?? $existing['preserveOnSession'] ?? null,
             'reorderable' => $reorderable ?? $existing['reorderable'] ?? false,
             'stickable' => $stickable ?? $existing['stickable'] ?? false,
             'stickyManagerTriggerActionModifier' => $existing['stickyManagerTriggerActionModifier'] ?? null,
