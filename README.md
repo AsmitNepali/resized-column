@@ -9,6 +9,9 @@ Resizable, reorderable, and pinnable table columns for Filament. Users drag colu
 [![Filament 3+](https://img.shields.io/badge/filament-3%2B-f59e0b.svg?style=for-the-badge)](https://filamentphp.com)
 [![License](https://img.shields.io/packagist/l/asmit/resized-column.svg?style=for-the-badge)](LICENSE.txt)
 
+> [!WARNING]
+> **v4 is in beta.** All `4.0.0-beta.*` releases are pre-release: APIs may change before the stable 4.0. Pin an exact version in production, or stay on `^3.0`.
+
 ## Features
 
 - **Drag-to-resize** — grab any column edge; widths persist per user
@@ -24,7 +27,7 @@ Resizable, reorderable, and pinnable table columns for Filament. Users drag colu
 Column **reordering** and **sticky (pinned) columns** ship in the `4.0.0-beta.*` releases. They work, but the behaviour and API may still change before the stable 4.0 release — pin an exact version if you need stability:
 
 ```bash
-composer require asmit/resized-column:4.0.0-beta.6
+composer require asmit/resized-column:4.0.0-beta.9
 ```
 
 Column resizing and the storage layer are stable.
