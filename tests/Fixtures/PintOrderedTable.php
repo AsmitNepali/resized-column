@@ -15,17 +15,16 @@ use Filament\Tables\Table;
 use Livewire\Component;
 
 /**
- * Default configuration: session persistence, no reorder, no sticky.
- *
- * HasResizableColumn is declared last here; PintOrderedTable covers the
- * alphabetical order Pint writes. Either order works.
+ * Traits in alphabetical order, which is what Laravel Pint's ordered_traits
+ * rule writes: HasResizableColumn boots before InteractsWithTable has built
+ * the table. Nothing in the boot path may depend on getTable().
  */
-class PlainTable extends Component implements HasActions, HasSchemas, HasTable
+class PintOrderedTable extends Component implements HasActions, HasSchemas, HasTable
 {
+    use HasResizableColumn;
     use InteractsWithActions;
     use InteractsWithSchemas;
     use InteractsWithTable;
-    use HasResizableColumn;
 
     public function makeFilamentTranslatableContentDriver(): ?TranslatableContentDriver
     {
@@ -37,9 +36,10 @@ class PlainTable extends Component implements HasActions, HasSchemas, HasTable
         return $table
             ->columns([
                 TextColumn::make('alpha'),
-                TextColumn::make('beta'),
+                TextColumn::make('beta')->sticky(),
                 TextColumn::make('gamma'),
-            ]);
+            ])
+            ->stickableColumns();
     }
 
     public function render(): string

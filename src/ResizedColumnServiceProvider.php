@@ -141,21 +141,42 @@ class ResizedColumnServiceProvider extends PackageServiceProvider
     {
         FilamentView::registerRenderHook(
             TablesRenderHook::TOOLBAR_COLUMN_MANAGER_TRIGGER_BEFORE,
-            function (array $scopes): string {
-                $componentClass = $scopes[0] ?? null;
-
-                if ($componentClass === null || ! ResizedColumnTableRegistry::isStickable($componentClass)) {
-                    return '';
-                }
-
-                $table = StickyPanel::resolveTableFromLivewire($componentClass);
-                $triggerAction = StickyPanel::resolveTriggerAction($table);
-
-                return view('asmit-resized-column::sticky-panel', [
-                    'triggerAction' => $triggerAction,
-                ])->render();
-            },
+            fn (array $scopes): string => $this->renderStickyPanel($scopes),
         );
+
+        /**
+         * Filament wraps the column-manager position in
+         * `@if ($hasFiltersTrigger || $hasColumnManager)`, so a table with no
+         * filters and no toggleable columns dropped the panel without a word.
+         * The search position sits outside that condition; render there only
+         * when the primary position is not going to appear.
+         */
+        FilamentView::registerRenderHook(
+            TablesRenderHook::TOOLBAR_SEARCH_AFTER,
+            fn (array $scopes): string => $this->renderStickyPanel($scopes, onlyWithoutColumnManager: true),
+        );
+    }
+
+    /**
+     * @param  array<int, string>  $scopes
+     */
+    protected function renderStickyPanel(array $scopes, bool $onlyWithoutColumnManager = false): string
+    {
+        $componentClass = $scopes[0] ?? null;
+
+        if ($componentClass === null || ! ResizedColumnTableRegistry::isStickable($componentClass)) {
+            return '';
+        }
+
+        $table = StickyPanel::resolveTableFromLivewire($componentClass);
+
+        if ($onlyWithoutColumnManager && ($table === null || StickyPanel::rendersColumnManagerTrigger($table))) {
+            return '';
+        }
+
+        return view('asmit-resized-column::sticky-panel', [
+            'triggerAction' => StickyPanel::resolveTriggerAction($table),
+        ])->render();
     }
 
     protected function registerColumnMacros(): void

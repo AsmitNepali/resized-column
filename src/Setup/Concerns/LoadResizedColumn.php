@@ -46,6 +46,8 @@ trait LoadResizedColumn
      */
     protected function applyResizedColumnLayout(): void
     {
+        $this->seedStickyDefaults();
+
         $this->applyColumnOrder();
 
         $this->applyStickyColumnOrder();
@@ -417,7 +419,9 @@ trait LoadResizedColumn
         }
 
         if ($this->stickyPersisted) {
-            $blob[self::STICKY_KEY] = array_values($this->stickyColumns);
+            // Written from an action, which can run before the render hook has
+            // seeded the ->sticky() columns, so merge them in here too.
+            $blob[self::STICKY_KEY] = $this->mergeDeveloperStickyColumns($this->stickyColumns);
         }
 
         return $blob;
@@ -504,7 +508,9 @@ trait LoadResizedColumn
         $this->columnOrder = $blob[self::ORDER_KEY] ?? [];
 
         if (array_key_exists(self::STICKY_KEY, $blob)) {
-            $this->stickyColumns = $this->mergeDeveloperStickyColumns($blob[self::STICKY_KEY]);
+            // Stored as-is; seedStickyDefaults() merges the ->sticky() columns
+            // back in at render time, once the table exists.
+            $this->stickyColumns = $blob[self::STICKY_KEY];
             $this->stickyPersisted = true;
         }
 

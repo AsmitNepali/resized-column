@@ -1,6 +1,7 @@
 <?php
 
 use Asmit\ResizedColumn\ResizedColumnTableRegistry;
+use Asmit\ResizedColumn\Tests\Fixtures\PintOrderedTable;
 use Asmit\ResizedColumn\Tests\Fixtures\PlainTable;
 use Asmit\ResizedColumn\Tests\Fixtures\StickyTable;
 use Illuminate\Foundation\Auth\User;
@@ -120,4 +121,17 @@ it('persists sticky selection to the database when global preserveOnDB is enable
 
     expect(array_keys(columnsOf(Livewire::test(StickyTable::class)->instance())))
         ->toBe(['beta', 'gamma', 'alpha']);
+});
+
+it('boots with traits in Pint order, where the table does not exist yet', function () {
+    $component = Livewire::test(PintOrderedTable::class);
+
+    expect(array_keys(columnsOf($component->instance())))->toBe(['beta', 'alpha', 'gamma'])
+        ->and(columnsOf($component->instance())['beta']->getExtraHeaderAttributes()['data-sticky'])
+        ->toBe('left');
+
+    $component->call('setStickyColumns', ['gamma']);
+
+    expect(session('tables.pint_ordered_table_columns_style')['__sticky'])
+        ->toBe(['beta', 'gamma']);
 });

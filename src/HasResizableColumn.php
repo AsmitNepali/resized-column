@@ -8,11 +8,15 @@ trait HasResizableColumn
 {
     use LoadResizedColumn;
 
+    /**
+     * Nothing here may touch $this->getTable(): Livewire boots traits in
+     * declaration order, and Pint's ordered_traits rule sorts this one above
+     * InteractsWithTable, so the table is not built yet. Anything needing it
+     * belongs in the rendering hooks below.
+     */
     public function bootedHasResizableColumn(): void
     {
         $this->loadColumnWidths();
-
-        $this->seedStickyDefaults();
     }
 
     /**

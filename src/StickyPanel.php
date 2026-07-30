@@ -4,6 +4,7 @@ namespace Asmit\ResizedColumn;
 
 use Filament\Actions\Action;
 use Filament\Support\Enums\Size;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Livewire\Component;
@@ -42,6 +43,32 @@ class StickyPanel
         $action->extraAttributes(['class' => 'fi-force-enabled'], merge: true);
 
         return $action;
+    }
+
+    /**
+     * Whether Filament will render the toolbar area that holds the column
+     * manager trigger. Mirrors `$hasFiltersTrigger || $hasColumnManager` in
+     * filament/tables' index.blade.php, which gates the position this package
+     * injects into.
+     */
+    public static function rendersColumnManagerTrigger(Table $table): bool
+    {
+        if ($table->hasColumnManager()) {
+            return true;
+        }
+
+        if (! $table->isFilterable()) {
+            return false;
+        }
+
+        return in_array($table->getFiltersLayout(), [
+            FiltersLayout::Dropdown,
+            FiltersLayout::Modal,
+            FiltersLayout::BeforeContent,
+            FiltersLayout::BeforeContentCollapsible,
+            FiltersLayout::AfterContent,
+            FiltersLayout::AfterContentCollapsible,
+        ], true);
     }
 
     public static function resolveTableFromLivewire(?string $componentClass): ?Table
