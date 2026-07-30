@@ -17,8 +17,9 @@ it('applies documented defaults on first register', function () {
 
     expect(ResizedColumnTableRegistry::has('App\\Foo'))->toBeTrue();
     expect(ResizedColumnTableRegistry::isStickable('App\\Foo'))->toBeTrue();
-    expect(ResizedColumnTableRegistry::shouldPreserveOnDb('App\\Foo'))->toBeFalse();
-    expect(ResizedColumnTableRegistry::shouldPreserveOnSession('App\\Foo'))->toBeTrue();
+    // null = unset, so panel-level preserveOnDB()/preserveOnSession() still apply
+    expect(ResizedColumnTableRegistry::shouldPreserveOnDb('App\\Foo'))->toBeNull();
+    expect(ResizedColumnTableRegistry::shouldPreserveOnSession('App\\Foo'))->toBeNull();
     expect(ResizedColumnTableRegistry::isReorderable('App\\Foo'))->toBeFalse();
 });
 
