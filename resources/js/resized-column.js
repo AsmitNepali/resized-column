@@ -97,14 +97,55 @@ function refreshDragHandles(table) {
     });
 }
 
+function unpinColumn(header) {
+    const columnName = header.getAttribute('data-column-name');
+    const wireId = header.closest('[wire\\:id]')?.getAttribute('wire:id');
+    const component = wireId ? window.Livewire?.find(wireId) : null;
+
+    if (columnName && typeof component?.toggleColumnSticky === 'function') {
+        component.toggleColumnSticky(columnName);
+    }
+}
+
 function ensureStickyPinForHeader(header) {
-    // Pins render via CSS ::before on [data-sticky] headers (see resized-column.css).
+    // A ->sticky() column cannot be unpinned (toggleColumnSticky refuses), so it
+    // keeps the plain CSS ::before pin rather than gaining a control that does
+    // nothing. Only tables opted into ->stickableColumns() can unpin at all.
+    if (header.hasAttribute('data-sticky-locked') || !header.hasAttribute('data-stickable')) {
+        return;
+    }
+
+    header.classList.add('resized-has-pin-toggle');
+
+    if (header.querySelector('.resized-sticky-pin')) {
+        return;
+    }
+
+    const pin = document.createElement('button');
+    pin.type = 'button';
+    pin.classList.add('resized-sticky-pin', 'is-toggle', 'is-pinned');
+    pin.setAttribute('aria-label', 'Unpin column');
+    pin.setAttribute('title', 'Unpin column');
+    pin.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        unpinColumn(header);
+    });
+
+    header.prepend(pin);
 }
 
 function refreshStickyPins(table) {
     if (!table) {
         return;
     }
+
+    // Drop toggles left on headers the user just unpinned; the CSS ::before pin
+    // covers every other pinned header.
+    table.querySelectorAll('thead th[data-column-name]:not([data-sticky]) .resized-sticky-pin').forEach((pin) => {
+        pin.closest('th')?.classList.remove('resized-has-pin-toggle');
+        pin.remove();
+    });
 
     table.querySelectorAll('thead th[data-column-name][data-sticky]').forEach((header) => {
         ensureStickyPinForHeader(header);
