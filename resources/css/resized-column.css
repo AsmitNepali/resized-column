@@ -135,11 +135,15 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
  * Sticky thead must sit above body cells (record-actions z-index 11, pinned
  * body cells z-index 10+) but below Filament chrome (topbar/sidebar z-30)
  * so user-menu and nav dropdowns stay on top.
+ *
+ * It must also stay *below* .fi-dropdown-panel (z-index 20), which is what the
+ * toolbar's column manager and filter dropdowns render into. At an equal 20 the
+ * thead won on DOM order and painted over those panels.
  */
 .sticky-table .fi-ta-table>thead>tr,
 .fi-ta-content-ctn .fi-ta-table>thead>tr {
     position: sticky;
-    z-index: 20 !important;
+    z-index: 19 !important;
 }
 
 /* Opaque header cells so scrolled rows cannot show through the thead.
@@ -462,7 +466,7 @@ thead [data-sticky-applied] {
  * Filament sticky record-actions column (enableStickyTableActions) must stack
  * above reorder grips (z-index 4–5) and pinned headers (z-index 18) so icons
  * from scrolled columns do not paint over the actions header.
- * Body action cells stay at 11; sticky thead (z-index 20) keeps them below
+ * Body action cells stay at 11; sticky thead (z-index 19) keeps them below
  * the header while scrolling vertically.
  */
 thead .fi-ta-actions-header-cell {
