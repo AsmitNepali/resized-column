@@ -7,7 +7,7 @@ use Filament\Tables\Table;
 
 /**
  * User-controlled pinning (->stickableColumns()) with one dev-declared
- * sticky column (beta) that users may not unpin.
+ * sticky column that users may not unpin.
  */
 class StickyTable extends PlainTable
 {

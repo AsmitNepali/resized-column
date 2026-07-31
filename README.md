@@ -9,28 +9,15 @@ Resizable, reorderable, and pinnable table columns for Filament. Users drag colu
 [![Filament 3+](https://img.shields.io/badge/filament-3%2B-f59e0b.svg?style=for-the-badge)](https://filamentphp.com)
 [![License](https://img.shields.io/packagist/l/asmit/resized-column.svg?style=for-the-badge)](LICENSE.txt)
 
-> [!WARNING]
-> **v4 is in beta.** All `4.0.0-beta.*` releases are pre-release: APIs may change before the stable 4.0. Pin an exact version in production, or stay on `^3.0`.
-
 ## Features
 
 - **Drag-to-resize** — grab any column edge; widths persist per user
-- **Drag-to-reorder** *(beta)* — `->dragReorderableColumns()` puts a grip on each header
-- **Pinned columns** *(beta)* — `->sticky()` for developer defaults, `->stickableColumns()` for a user-facing "Pin columns" panel with draft + Apply, plus click-the-pin to unpin from the header
+- **Drag-to-reorder** — `->dragReorderableColumns()` puts a grip on each header
+- **Pinned columns** — `->sticky()` for developer defaults, `->stickableColumns()` for a user-facing "Pin columns" panel with draft + Apply, plus click-the-pin to unpin from the header
 - **Persistence** — session by default, database opt-in; widths, order, and pins share one settings row per user
 - **Works without a panel** — the same trait drives tables in plain Livewire components
 - **Filament-native styling** — pinned cells match Filament's own table surfaces in light and dark, and stay opaque while scrolling
-- **Customisable trigger** *(beta)* — restyle the toolbar button via `->stickyManagerTriggerAction()`
-
-## Beta features
-
-Column **reordering** and **sticky (pinned) columns** ship in the `4.0.0-beta.*` releases. They work, but the behaviour and API may still change before the stable 4.0 release — pin an exact version if you need stability:
-
-```bash
-composer require asmit/resized-column:4.0.0-beta.5
-```
-
-Column resizing and the storage layer are stable.
+- **Customisable trigger** — restyle the toolbar button via `->stickyManagerTriggerAction()`
 
 ## Requirements
 
