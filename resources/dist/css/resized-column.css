@@ -159,6 +159,18 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
     z-index: 21;
 }
 
+/*
+ * That stacking context also traps toolbar *modals*. A column manager or filter
+ * trigger configured with ->modal()/->slideOver() renders its overlay inside
+ * .fi-ta-header-ctn, so the overlay's own z-index (40) resolves within this
+ * context and the whole modal still paints under the topbar (z-index 30).
+ * While such a modal is open, lift the context above Filament chrome; the
+ * overlay covers the page anyway, so nothing else needs to stay on top.
+ */
+.fi-ta-ctn .fi-ta-header-ctn:has(.fi-modal.fi-modal-open) {
+    z-index: 50;
+}
+
 /* Opaque header cells so scrolled rows cannot show through the thead.
    Prefer inherit so host themes (e.g. Primo #EAEEF2) keep their surface. */
 .sticky-table .fi-ta-table>thead>tr>th.fi-ta-header-cell,
