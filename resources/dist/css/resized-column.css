@@ -146,6 +146,19 @@ thead th.fi-ta-header-cell.resized-column-is-resizing {
     z-index: 19 !important;
 }
 
+/*
+ * Lifting the toolbar as a whole is what actually keeps its dropdowns (column
+ * manager, filters, this package's pin panel) above the sticky thead. Relying
+ * on .fi-dropdown-panel's own z-index is not enough: it only wins when the
+ * panel and the thead resolve in the same stacking context, which host themes
+ * break as soon as they position or elevate anything in between.
+ * 21 stays under Filament chrome (topbar/sidebar, z-index 30).
+ */
+.fi-ta-ctn .fi-ta-header-ctn {
+    position: relative;
+    z-index: 21;
+}
+
 /* Opaque header cells so scrolled rows cannot show through the thead.
    Prefer inherit so host themes (e.g. Primo #EAEEF2) keep their surface. */
 .sticky-table .fi-ta-table>thead>tr>th.fi-ta-header-cell,
