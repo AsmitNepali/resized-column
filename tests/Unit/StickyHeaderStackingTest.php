@@ -43,3 +43,23 @@ it('lifts the table toolbar above the sticky thead', function () {
         ->and((int) $zIndex['value'])->toBeGreaterThan(19)
         ->and((int) $zIndex['value'])->toBeLessThan(30);
 });
+
+it('lifts the toolbar above filament chrome while a toolbar modal is open', function () {
+    $css = file_get_contents(dirname(__DIR__, 2).'/resources/css/resized-column.css');
+
+    preg_match(
+        '/\.fi-ta-ctn \.fi-ta-header-ctn:has\(\.fi-modal\.fi-modal-open\)\s*\{(?<rules>[^}]*)\}/',
+        $css,
+        $matches,
+    );
+
+    expect($matches['rules'] ?? null)->not->toBeNull();
+
+    preg_match('/z-index:\s*(?<value>\d+)/', $matches['rules'], $zIndex);
+
+    // A slide-over/modal column manager renders inside the toolbar, so the
+    // toolbar's stacking context must clear the topbar (30) and the modal
+    // overlay (40) while the modal is open.
+    expect($zIndex['value'] ?? null)->not->toBeNull()
+        ->and((int) $zIndex['value'])->toBeGreaterThan(40);
+});
