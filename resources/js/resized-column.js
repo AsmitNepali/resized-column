@@ -126,12 +126,12 @@ function ensureStickyPinForHeader(header) {
     pin.classList.add('resized-sticky-pin', 'is-toggle', 'is-pinned');
     pin.setAttribute('aria-label', 'Unpin column');
     pin.setAttribute('title', 'Unpin column');
-    pin.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        unpinColumn(header);
-    });
 
+    // No per-element listener here: this button is injected, so Livewire's morph
+    // pairs it with whatever the server rendered first in the cell (usually the
+    // sort button) and patches it in place. A bound listener would survive on
+    // that element and unpin the column whenever the header was clicked. The
+    // delegated document listener below resolves the header at click time.
     header.prepend(pin);
 }
 
@@ -646,6 +646,25 @@ if (document.readyState === 'loading') {
     initExistingTables();
 }
 
+document.addEventListener('click', (event) => {
+    const pin = event.target?.closest?.('.resized-sticky-pin.is-toggle');
+
+    if (!pin) {
+        return;
+    }
+
+    const header = pin.closest('th[data-column-name]');
+
+    if (!header) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    unpinColumn(header);
+});
+
 document.addEventListener('resized-column:sticky-refreshed', (event) => {
     const table = event.target?.closest?.('.fi-ta-table, table.fi-ta-table')
         ?? (event.target?.matches?.('.fi-ta-table, table.fi-ta-table') ? event.target : null);
@@ -677,13 +696,16 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('resizedStickyPanel', () => ({
         open: false,
         columns: [],
-        draftInitialized: false,
 
         toggle() {
             this.open = !this.open;
 
+            // Always re-read the live thead when opening. A draft kept across
+            // closes goes stale the moment the pinned set changes elsewhere
+            // (header pin toggle, another panel), and used to keep unpinned
+            // columns checked until a full page reload.
             if (this.open) {
-                this.ensureDraft();
+                this.refresh();
             }
         },
 
@@ -710,13 +732,6 @@ document.addEventListener('alpine:init', () => {
                 pinned: th.hasAttribute('data-sticky'),
                 locked: th.hasAttribute('data-sticky-locked'),
             }));
-            this.draftInitialized = true;
-        },
-
-        ensureDraft() {
-            if (!this.draftInitialized || !this.isDirty()) {
-                this.refresh();
-            }
         },
 
         livePinned() {
