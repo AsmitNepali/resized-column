@@ -27,7 +27,7 @@
     "motion-v": "^2.3.0",
     "nuxt": "^4.4.8",
     "nuxt-llms": "0.2.0",
-    "nuxt-og-image": "^6.7.4",
+    "nuxt-og-image": "^6.7.8",
     "tailwindcss": "^4.3.2",
     "ufo": "^1.6.4",
     "unist-util-visit": "^5.1.0",
