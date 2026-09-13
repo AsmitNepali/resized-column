@@ -25,7 +25,7 @@
     "@vueuse/nuxt": "^14.4.0",
     "minimark": "^1.0.0",
     "motion-v": "^2.3.0",
-    "nuxt": "^4.4.8",
+    "nuxt": "^4.5.2",
     "nuxt-llms": "0.2.0",
     "nuxt-og-image": "^6.7.8",
     "tailwindcss": "^4.3.2",
